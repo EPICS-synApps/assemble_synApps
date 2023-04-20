@@ -398,7 +398,7 @@ if (exists($modules{SNCSEQ}))
 		
 	`curl -O https://www-csr.bessy.de/control/SoftDist/sequencer/releases/seq-${TAG}.tar.gz`;
 	
-	`tar zxf seq-${TAG}.tar.gz"`;
+	`tar zxf seq-${TAG}.tar.gz`;
 	move("seq-${TAG}", "seq-${FILTER_TAG}");
 	unlink "seq-${TAG}.tar.gz";
 	

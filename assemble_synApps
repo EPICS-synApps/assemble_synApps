@@ -190,6 +190,9 @@ if (exists($modules{AREA_DETECTOR}))
 	
 	chdir "ADCore/iocBoot";
 	
+	copy("EXAMPLE_commonPlugins.cmd", "commonPlugins.cmd");
+	copy("EXAMPLE_commonPlugin_settings.req", "commonPlugin_settings.req");
+	
 	if ($WITH_PVA == "YES")
 	{
 		`perl -pi -e "s/#NDPvaConfigure/NDPvaConfigure/g" commonPlugins.cmd`;
@@ -202,8 +205,6 @@ if (exists($modules{AREA_DETECTOR}))
 	copy("EXAMPLE_CONFIG_SITE.local", "CONFIG_SITE.local");
 	copy("EXAMPLE_CONFIG_SITE.local.WIN32", "CONFIG_SITE.local.WIN32");
 	
-	copy("EXAMPLE_commonPlugins.cmd", "commonPlugins.cmd");
-	copy("EXAMPLE_commonPlugin_settings.req", "commonPlugin_settings.req");
 	copy("EXAMPLE_RELEASE_PRODS.local", "RELEASE_PRODS.local");
 	copy("EXAMPLE_RELEASE_LIBS.local", "RELEASE_LIBS.local");
 	copy("EXAMPLE_RELEASE.local", "RELEASE.local");

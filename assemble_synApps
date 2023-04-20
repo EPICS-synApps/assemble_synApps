@@ -234,6 +234,7 @@ if (exists($modules{ASYN}))
 	chdir "asyn-$modules{ASYN}";
 	
 	add_line("EPICS_BASE=", "./configure/RELEASE.local");
+	add_line("IPAC=", "./configure/RELEASE.local");
 	
 	if (-e "/etc/redhat-release")
 	{

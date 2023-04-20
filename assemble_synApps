@@ -1,0 +1,407 @@
+#!/usr/bin/perl
+
+use Cwd;
+use File::Copy;
+use File::Copy "move";
+use File::Copy::Recursive "rcopy";
+use File::Path "rmtree";
+use Getopt::Long;
+
+my $releasefile="default";
+
+GetOptions ("config=s" => \$releasefile) or die("error");
+
+my %modules = ();
+
+my $EPICS_BASE='D:/epics/base/base-7.0.7';
+my $SUPPORT='master';
+
+my $HAVE_HIDAPI='NO';
+my $WITH_PVA='YES';
+
+my $SYNAPPS_DIR='git';
+
+$modules{'ALLENBRADLEY'} = 'master';
+$modules{'ALIVE'} = 'master';
+$modules{'AREA_DETECTOR'} = 'master';
+$modules{'ASYN'} = 'master';
+$modules{'AUTOSAVE'} = 'master';
+$modules{'BUSY'} = 'master';
+$modules{'CALC'} = 'master';
+$modules{'CAMAC'} = 'master';
+$modules{'CAPUTRECORDER'} = 'master';
+$modules{'DAC128V'} = 'master';
+$modules{'DELAYGEN'} = 'master';
+$modules{'DXP'} = 'master';
+$modules{'DXPSITORO'} = 'master';
+$modules{'DEVIOCSTATS'} = 'master';
+#$modules{'ETHERIP'} = 'ether_ip-3-3';
+$modules{'GALIL'} = 'V3-6';
+$modules{'IP'} = 'master';
+$modules{'IPAC'} = 'master';
+$modules{'IP330'} = 'master';
+$modules{'IPUNIDIG'} = 'master';
+$modules{'LOVE'} = 'master';
+$modules{'LUA'} = 'master';
+$modules{'MCA'} = 'master';
+#$modules{'MEASCOMP'} = 'master';
+#$modules{'ULDAQ'} = '1.2.1';
+$modules{'MODBUS'} = 'master';
+$modules{'MOTOR'} = 'master';
+#$modules{'OPCUA'} = 'v0.9.3';
+#$modules{'UASDK'} = '/path/to/sdk';
+$modules{'OPTICS'} = 'master';
+$modules{'QUADEM'} = 'master';
+$modules{'SNCSEQ'} = '2.2.9';
+$modules{'SOFTGLUE'} = 'master';
+$modules{'SOFTGLUEZYNQ'} = 'master';
+$modules{'SSCAN'} = 'master';
+$modules{'SCALER'} = 'master';
+$modules{'STD'} = 'master';
+$modules{'STREAM'} = '2.8.24';
+$modules{'VAC'} = 'master';
+$modules{'VME'} = 'master';
+$modules{'YOKOGAWA_DAS'} = 'master';
+$modules{'XSPRESS3'} = 'master';
+$modules{'XXX'} = 'master';
+
+sub get_support {
+	my @parms = @_;
+	
+	`git clone -q https://github.com/EPICS-synApps/${parms[0]}.git`;
+	chdir "${parms[0]}";
+	`git checkout -q ${parms[1]}`;
+	chdir "..";
+}
+
+sub get_repo {
+	my @parms = @_;
+	
+	my $PROJECT=$parms[0];
+	my $MODULE_NAME=$parms[1];
+	my $RELEASE_NAME=$parms[2];
+	my $TAG=$parms[3];
+	my $FILTER_TAG=$parms[3];
+	my $REL = $parms[4];
+	
+	$FILTER_TAG =~ s/\./-/g;
+	
+	my $FOLDER_NAME="$MODULE_NAME-${FILTER_TAG}";
+	
+	print "\n";
+	print "Grabbing $MODULE_NAME at tag: $TAG\n";
+	print "\n";
+	
+	`git clone -q https://github.com/$PROJECT/${MODULE_NAME}.git ${FOLDER_NAME}`;
+	
+	my $CURR=getcwd();
+	
+	chdir $FOLDER_NAME;
+	`git checkout -q $TAG`;
+	chdir "$CURR";
+	
+	say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
+	
+	print "\n";
+}
+
+sub add_line {
+	my @params = @_;
+	
+	my $LINE = $params[0];
+	my $FILENAME = $params[1];
+	
+	open (my $temp, ">>", "$FILENAME");
+	say $temp "$LINE";
+	close($temp);
+}
+
+mkdir "${SYNAPPS_DIR}";
+chdir "${SYNAPPS_DIR}";
+
+get_support("support", "master");
+chdir "support";
+
+my $SUPPORT = getcwd();
+
+open(my $RELEASE, '>', "configure/RELEASE") or die("can't open RELEASE");
+
+
+say $RELEASE  "SUPPORT=$SUPPORT";
+say $RELEASE  '-include $(TOP)/configure/SUPPORT.$(EPICS_HOST_ARCH)';
+say $RELEASE  "EPICS_BASE=$EPICS_BASE";
+say $RELEASE  '-include $(TOP)/configure/EPICS_BASE';
+say $RELEASE  '-include $(TOP)/configure/EPICS_BASE.$(EPICS_HOST_ARCH)';
+say $RELEASE  "";
+say $RELEASE  "";
+
+if (exists($modules{ALIVE}))         { get_repo("epics-modules",         "alive",         "ALIVE",         "$modules{ALIVE}",         $RELEASE ); }
+if (exists($modules{ASYN}))          { get_repo("epics-modules",         "asyn",          "ASYN",          "$modules{ASYN}",          $RELEASE ); }
+if (exists($modules{AUTOSAVE}))      { get_repo("epics-modules",         "autosave",      "AUTOSAVE",      "$modules{AUTOSAVE}",      $RELEASE ); }
+if (exists($modules{BUSY}))          { get_repo("epics-modules",         "busy",          "BUSY",          "$modules{BUSY}",          $RELEASE ); }
+if (exists($modules{CALC}))          { get_repo("epics-modules",         "calc",          "CALC",          "$modules{CALC}",          $RELEASE ); }
+if (exists($modules{CAMAC}))         { get_repo("epics-modules",         "camac",         "CAMAC",         "$modules{CAMAC}",         $RELEASE ); }
+if (exists($modules{CAPUTRECORDER})) { get_repo("epics-modules",         "caputRecorder", "CAPUTRECORDER", "$modules{CAPUTRECORDER}", $RELEASE ); }
+if (exists($modules{DAC128V}))       { get_repo("epics-modules",         "dac128V",       "DAC128V",       "$modules{DAC128V}",       $RELEASE ); }
+if (exists($modules{DELAYGEN}))      { get_repo("epics-modules",         "delaygen",      "DELAYGEN",      "$modules{DELAYGEN}",      $RELEASE ); }
+if (exists($modules{DXP}))           { get_repo("epics-modules",         "dxp",           "DXP",           "$modules{DXP}",           $RELEASE ); }
+if (exists($modules{DXPSITORO}))     { get_repo("epics-modules",         "dxpSITORO",     "DXPSITORO",     "$modules{DXPSITORO}",     $RELEASE ); }
+if (exists($modules{DEVIOCSTATS}))   { get_repo("epics-modules",         "iocStats",      "DEVIOCSTATS",   "$modules{DEVIOCSTATS}",   $RELEASE ); }
+if (exists($modules{ETHERIP}))       { get_repo("epics-modules",         "ether_ip",      "ETHERIP",       "$modules{ETHERIP}",       $RELEASE ); }
+if (exists($modules{GALIL}))         { get_repo("motorapp",              "Galil-3-0",     "GALIL",         "$modules{GALIL}",         $RELEASE ); }
+if (exists($modules{IP}))            { get_repo("epics-modules",         "ip",            "IP",            "$modules{IP}",            $RELEASE ); }
+if (exists($modules{IPAC}))          { get_repo("epics-modules",         "ipac",          "IPAC",          "$modules{IPAC}",          $RELEASE ); }
+if (exists($modules{IP330}))         { get_repo("epics-modules",         "ip330",         "IP330",         "$modules{IP330}",         $RELEASE ); }
+if (exists($modules{IPUNIDIG}))      { get_repo("epics-modules",         "ipUnidig",      "IPUNIDIG",      "$modules{IPUNIDIG}",      $RELEASE ); }
+if (exists($modules{LOVE}))          { get_repo("epics-modules",         "love",          "LOVE",          "$modules{LOVE}",          $RELEASE ); }
+if (exists($modules{LUA}))           { get_repo("epics-modules",         "lua",           "LUA",           "$modules{LUA}",           $RELEASE ); }
+if (exists($modules{MCA}))           { get_repo("epics-modules",         "mca",           "MCA",           "$modules{MCA}",           $RELEASE ); }
+if (exists($modules{MEASCOMP}))      { get_repo("epics-modules",         "measComp",      "MEASCOMP",      "$modules{MEASCOMP}",      $RELEASE ); }
+if (exists($modules{MODBUS}))        { get_repo("epics-modules",         "modbus",        "MODBUS",        "$modules{MODBUS}",        $RELEASE ); }
+if (exists($modules{MOTOR}))         { get_repo("epics-modules",         "motor",         "MOTOR",         "$modules{MOTOR}",         $RELEASE ); }
+if (exists($modules{OPTICS}))        { get_repo("epics-modules",         "optics",        "OPTICS",        "$modules{OPTICS}",        $RELEASE ); }
+if (exists($modules{QUADEM}))        { get_repo("epics-modules",         "quadEM",        "QUADEM",        "$modules{QUADEM}",        $RELEASE ); }
+if (exists($modules{SCALER}))        { get_repo("epics-modules",         "scaler",        "SCALER",        "$modules{SCALER}",        $RELEASE ); }
+if (exists($modules{SOFTGLUE}))      { get_repo("epics-modules",         "softGlue",      "SOFTGLUE",      "$modules{SOFTGLUE}",      $RELEASE ); }
+if (exists($modules{SOFTGLUEZYNQ}))  { get_repo("epics-modules",         "softGlueZynq",  "SOFTGLUEZYNQ",  "$modules{SOFTGLUEZYNQ}",  $RELEASE ); }
+if (exists($modules{SSCAN}))         { get_repo("epics-modules",         "sscan",         "SSCAN",         "$modules{SSCAN}",         $RELEASE ); }
+if (exists($modules{STD}))           { get_repo("epics-modules",         "std",           "STD",           "$modules{STD}",           $RELEASE ); }
+if (exists($modules{STREAM}))        { get_repo("paulscherrerinstitute", "StreamDevice",  "STREAM",        "$modules{STREAM}",        $RELEASE ); }
+if (exists($modules{VAC}))           { get_repo("epics-modules",         "vac",           "VAC",           "$modules{VAC}",           $RELEASE ); }
+if (exists($modules{VME}))           { get_repo("epics-modules",         "vme",           "VME",           "$modules{VME}",           $RELEASE ); }
+if (exists($modules{XSPRESS3}))      { get_repo("epics-modules",         "xspress3",      "XSPRESS3",      "$modules{XSPRESS3}",      $RELEASE ); }
+if (exists($modules{YOKOGAWA_DAS}))  { get_repo("epics-modules",         "Yokogawa_DAS",  "YOKOGAWA_DAS",  "$modules{YOKOGAWA_DAS}",  $RELEASE ); }
+if (exists($modules{XXX}))           { get_repo("epics-modules",         "xxx",           "XXX",           "$modules{XXX}",           $RELEASE ); }
+
+
+if (exists($modules{AREA_DETECTOR}))
+{
+	get_repo("areaDetector", "areaDetector", "AREA_DETECTOR", "$modules{AREA_DETECTOR}", $RELEASE);
+	
+	say $RELEASE 'ADCORE=$(AREA_DETECTOR)/ADCore';
+	say $RELEASE 'ADSUPPORT=$(AREA_DETECTOR)/ADSupport';
+	
+	chdir "areaDetector-$modules{AREA_DETECTOR}";
+	
+	`git submodule init`;
+	`git submodule update ADCore`;
+	`git submodule update ADSupport`;
+	`git submodule update ADSimDetector`;
+	
+	chdir "ADCore/iocBoot";
+	
+	if ($WITH_PVA == "YES")
+	{
+		`perl -pi -e "s/#NDPvaConfigure/NDPvaConfigure/g" commonPlugins.cmd`;
+		`perl -pi -e 's/#dbLoadRecords("NDPva/dbLoadRecords("NDPva/g' commonPlugins.cmd`;
+		`perl -pi -e "s/#startPVAServer/startPVAServer/g" commonPlugins.cmd`;
+	}
+	
+	chdir "../../configure";
+	
+	copy("EXAMPLE_CONFIG_SITE.local", "CONFIG_SITE.local");
+	copy("EXAMPLE_CONFIG_SITE.local.WIN32", "CONFIG_SITE.local.WIN32");
+	
+	copy("EXAMPLE_commonPlugins.cmd", "commonPlugins.cmd");
+	copy("EXAMPLE_commonPlugin_settings.req", "commonPlugin_settings.req");
+	copy("EXAMPLE_RELEASE_PRODS.local", "RELEASE_PRODS.local");
+	copy("EXAMPLE_RELEASE_LIBS.local", "RELEASE_LIBS.local");
+	copy("EXAMPLE_RELEASE.local", "RELEASE.local");
+	
+	add_line("WITH_GRAPHICSMAGICK = NO", "CONFIG_SITE.local.vxWorks");
+	add_line("WITH_BLOSC = NO", "CONFIG_SITE.local.vxWorks");
+	add_line("WITH_BITSHUFFLE = NO", "CONFIG_SITE.local.vxWorks");
+	add_line("WITH_JSON = NO", "CONFIG_SITE.local.vxWorks");
+	
+	add_line("WITH_GRAPHICSMAGICK = NO", "CONFIG_SITE.local.linux-x86_64.linux-arm");
+	add_line("WITH_BITSHUFFLE = NO", "CONFIG_SITE.local.linux-x86_64.linux-arm");
+	copy("CONFIG_SITE.local.linux-x86_64.linux-arm", "CONFIG_SITE.local.linux-x86.linux-arm");
+
+	if ($WITH_PVA == "NO")
+	{
+		`perl -pi -e "s/WITH_PVA = YES/WITH_PVA = NO" CONFIG_SITE.local`;
+		`perl -pi -e "s/WITH_QSRV = YES/WITH_QSRV = NO" CONFIG_SITE.local`;
+	}
+
+	`perl -pi -e "s/#ADSIMDETECTOR/ADSIMDETECTOR/g" RELEASE.local`;
+	
+	chdir "../..";
+}
+
+if (exists($modules{ASYN}))
+{
+	chdir "asyn-$modules{ASYN}";
+	
+	add_line("EPICS_BASE=", "./configure/RELEASE.local");
+	
+	if (-e "/etc/redhat-release")
+	{
+		my $version = `cat /etc/redhat-release`;
+		
+		if (grep(/release 8/, $version))
+		{
+			add_line("TIRPC = YES", "./configure/CONFIG_SITE.Common.linux-x86_64");
+
+			copy("./configure/CONFIG_SITE.Common.linux-x86_64", "./configure/CONFIG_SITE.Common.linux-x86_64-debug");
+		}
+	}
+	
+	chdir "..";
+}
+
+if (exists($modules{CALC}))
+{
+	if (exists($modules{SNCSEQ}))
+	{
+		chdir "calc-$modules{CALC}";
+		`perl -pi -e "s/#SNCSEQ/SNCSEQ/g" configure/RELEASE`;
+		chdir "..";
+	}
+}
+
+if (exists($modules{DXP}))
+{
+	chdir "dxp-$modules{DXP}";
+	add_line("EPICS_BASE=", "./configure/RELEASE");
+	add_line("LINUX_USB_INSTALLED = NO", "./configure/CONFIG_SITE.linux-x86.linux-arm");
+	add_line("LINUX_USB_INSTALLED = NO", "./configure/CONFIG_SITE.linux-x86_64.linux-arm");
+	chdir "..";
+}
+
+if (exists($modules{ETHERIP}))
+{
+	chdir "ether_ip-$modules{ETHERIP}";	
+	add_line("EPICS_BASE=", "./configure/RELEASE");
+	`perl -pi -e "s/USR_CFLAGS += -Wno-unused-value/#USR_CFLAGS += -Wno-unused-value/g" ether_ipApp/src/Makefile`;
+	chdir "..";
+}
+
+if (exists($modules{GALIL}))
+{
+	my $FILTER_TAG=$modules{GALIL};
+	
+	$FILTER_TAG =~ s/V//g;
+	
+	chdir "Galil-3-0-$modules{GALIL}";
+	
+	rcopy("${FILTER_TAG}/.", "./");
+	rmtree("${FILTER_TAG}");
+	
+	copy("./config/GALILRELEASE", "./configure/RELEASE.local");
+	
+	`perl -pi -e "s/#CROSS_COMPILER_TARGET_ARCHS.*/CROSS_COMPILER_TARGET_ARCHS=/g" configure/CONFIG_SITE`;
+	
+	chdir "..";
+}
+
+if (exists($modules{IPAC}))
+{
+	my $FILTER_TAG=$modules{IPAC};
+	
+	$FILTER_TAG =~ s/\./-/g;
+	
+	chdir "ipac-${FILTER_TAG}";
+	
+	add_line('-include $(TOP)/../RELEASE.local', "./configure/RELEASE");
+	add_line('-include $(TOP)/../RELEASE.$(EPICS_HOST_ARCH).local', "./configure/RELEASE");
+	add_line('-include $(TOP)/configure/RELEASE.local', "./configure/RELEASE");
+	
+	`perl -pi -e "s/#registrar(vipc310Registrar)/registrar(vipc310Registrar)/g" drvIpac/drvIpac.dbd`;
+	`perl -pi -e "s/#registrar(vipc610Registrar)/registrar(vipc610Registrar)/g" drvIpac/drvIpac.dbd`;
+	`perl -pi -e "s/#registrar(vipc616Registrar)/registrar(vipc616Registrar)/g" drvIpac/drvIpac.dbd`;
+	`perl -pi -e "s/#registrar(tvme200Registrar)/registrar(tvme200Registrar)/g" drvIpac/drvIpac.dbd`;
+	`perl -pi -e "s/#registrar(xy9660Registrar)/registrar(xy9660Registrar)/g" drvIpac/drvIpac.dbd`;
+	
+	chdir "..";
+}
+
+if (exists($modules{MEASCOMP}))
+{
+	chdir "measComp-$modules{MEASCOMP}";
+	
+	
+	if ($^O == "linux")
+	{
+		`curl -O https://github.com/mccdaq/uldaq/releases/download/v${ULDAQ}/libuldaq-${ULDAQ}.tar.bz2`;
+		`tar -xvjf libuldaq-${ULDAQ}.tar.bz2`;
+		unlink("libuldaq-${ULDAQ}.tar.bz2");
+	
+		chdir "libuldaq-${ULDAQ}";
+		
+		my $PWD = getcmd();
+		
+		`./configure --prefix=${PWD}`;
+		`make`;
+		`make install || true`;
+		
+		add_line("USR_LDFLAGS+=-L${PWD}/lib", "../configure/CONFIG_SITE.local");
+		add_line("USR_CPPFLAGS+=-I${PWD}/include", "../configure/CONFIG_SITE.local");
+		
+		chdir "..";
+	}
+	
+	if ($HAVE_HIDAPI == "NO")
+	{
+		`perl -pi -e "s/HAVE_HIDAPI=YES/HAVE_HIDAPI=NO/g" ./configure/CONFIG_SITE*`;
+	}
+	
+	chdir "..";
+}
+
+if (exists($modules{MCA}))
+{
+	chdir "mca-$modules{MCA}";
+	add_line("SCALER=", "./configure/RELEASE");
+	add_line("LINUX_LIBUSB-1.0_INSTALLED = NO", "./configure/CONFIG_SITE.linux-x86_64.linux-arm");
+	add_line("LINUX_LIBUSB-1.0_INSTALLED = NO", "./configure/CONFIG_SITE.linux-x86.linux-arm");
+	chdir "..";
+}
+
+if (exists($modules{MOTOR}))
+{
+	chdir "motor-$modules{MOTOR}";
+	`git submodule init`;
+	`git submodule update`;
+	chdir "..";
+}
+
+if (exists($modules{STREAM}))
+{
+	my $FILTER_TAG=$modules{STREAM};
+	
+	$FILTER_TAG =~ s/\./-/g;
+	
+	chdir "StreamDevice-${FILTER_TAG}";
+	
+	unlink("GNUmakefile");
+	
+	`perl -pi -e "s/PCRE=/#PCRE=/g" ./configure/RELEASE`;
+	
+	if (exists($modules{SNCSEQ}))
+	{
+		add_line("SNCSEQ=", "./configure/RELEASE");
+	}
+	
+	add_line("SSCAN=", "./configure/RELEASE");
+	add_line("STREAM=", "./configure/RELEASE");
+	
+	chdir "..";
+}
+
+if (exists($modules{SNCSEQ}))
+{
+	my $TAG=$modules{SNCSEQ};
+	my $FILTER_TAG=$modules{SNCSEQ};
+	
+	$FILTER_TAG =~ s/\./-/g;
+		
+	`curl -O https://www-csr.bessy.de/control/SoftDist/sequencer/releases/seq-${TAG}.tar.gz`;
+	
+	`tar zxf seq-${TAG}.tar.gz"`;
+	move("seq-${TAG}", "seq-${FILTER_TAG}");
+	unlink "seq-${TAG}.tar.gz";
+	
+	say $RELEASE "SNCSEQ=\$(SUPPORT)/seq-${FILTER_TAG}";
+}
+
+`make release`;

@@ -302,6 +302,29 @@ foreach my $key (sort keys %modules)
 # Additional Module Handling #
 ##############################
 
+if (exists($modules{ALLENBRADLEY}))
+{
+	my $TAG=$modules{ALLENBRADLEY};
+	my $FILTER_TAG=$modules{ALLENBRADLEY};
+	
+	$FILTER_TAG =~ s/\./-/g;
+	
+	rmtree("allenBradley-${FILTER_TAG}");
+	say $RELEASE "ALLENBRADLEY=\$(SUPPORT)/allenBradley-${FILTER_TAG}";
+	
+	`curl -O https://www.aps.anl.gov/epics/download/modules/allenBradley-${TAG}.tar.gz`;
+	
+	`tar zxf allenBradley-${TAG}.tar.gz`;
+	move("allenBradley-${TAG}", "allenBradley-${FILTER_TAG}");
+	unlink "allenBradley-${TAG}.tar.gz";
+	
+	chdir "allenBradley-$TAG"
+	add_line("-include \$(TOP)/../RELEASE.local", "./configure/RELEASE")
+	add_line("-include \$(TOP)/../RELEASE.\$(EPICS_HOST_ARCH).local", "./configure/RELEASE")
+	add_line("-include \$(TOP)/configure/RELEASE.local", "./configure/RELEASE")
+	chdir ".."
+}
+
 
 if (exists($modules{AREA_DETECTOR}))
 {

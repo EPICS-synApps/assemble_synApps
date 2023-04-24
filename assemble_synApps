@@ -10,8 +10,6 @@ use Getopt::Long;
 
 my $releasefile="default";
 
-GetOptions ("config=s" => \$releasefile) or die("error");
-
 my %modules = ();
 
 my $EPICS_BASE='/home/keenan/epics/base/base-7.0.7';
@@ -22,6 +20,25 @@ my $WITH_PVA='YES';
 
 my $SYNAPPS_DIR='git';
 
+my $HELP;
+
+GetOptions ("config=s" => \$releasefile,
+            "dir=s" => \$SYNAPPS_DIR,
+            "base=s" => \$EPICS_BASE,
+            "help" => \$HELP) or die("error");
+
+if ($HELP)
+{
+	print "assemble_synapps:\n";
+	print "\n";
+	print "\t--config=<config filepath>\n";
+	print "\t--dir=<synapps dir name>\n";
+	print "\t--base=<EPICS BASE location>\n";
+	print "\t--help\n";
+	
+	exit;
+}
+			
 if ($releasefile eq "default")
 {
 	$modules{'ALLENBRADLEY'} = 'master';

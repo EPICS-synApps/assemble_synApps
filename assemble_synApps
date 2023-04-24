@@ -1,9 +1,10 @@
 #!/usr/bin/perl
 
+require v5.12;
+
 use Cwd;
 use File::Copy;
 use File::Copy "move";
-use File::Copy::Recursive "rcopy";
 use File::Path "rmtree";
 use Getopt::Long;
 
@@ -13,7 +14,7 @@ GetOptions ("config=s" => \$releasefile) or die("error");
 
 my %modules = ();
 
-my $EPICS_BASE='D:/epics/base/base-7.0.7';
+my $EPICS_BASE='/home/keenan/epics/base/base-7.0.7';
 my $SUPPORT='master';
 
 my $HAVE_HIDAPI='NO';
@@ -65,13 +66,30 @@ $modules{'YOKOGAWA_DAS'} = 'master';
 $modules{'XSPRESS3'} = 'master';
 $modules{'XXX'} = 'master';
 
+sub copy_recur {
+	my @parms = @_;
+	
+	opendir(my $dirhandle, $parms[0]);
+	
+	while (readdir($dirhandle)) {
+		next if($_ =~ /^\.$/);
+		next if($_ =~ /^\.\.$/);
+		
+		move("$parms[0]/$_", "$parms[1]/$_");
+	}
+}
+
 sub get_support {
 	my @parms = @_;
 	
-	`git clone -q https://github.com/EPICS-synApps/${parms[0]}.git`;
-	chdir "${parms[0]}";
-	`git checkout -q ${parms[1]}`;
-	chdir "..";
+	
+	if (! -d "${parms[0]}")
+	{
+		`git clone -q https://github.com/EPICS-synApps/${parms[0]}.git`;
+		chdir "${parms[0]}";
+		`git checkout -q ${parms[1]}`;
+		chdir "..";
+	}
 }
 
 sub get_repo {
@@ -88,21 +106,37 @@ sub get_repo {
 	
 	my $FOLDER_NAME="$MODULE_NAME-${FILTER_TAG}";
 	
-	print "\n";
-	print "Grabbing $MODULE_NAME at tag: $TAG\n";
-	print "\n";
-	
-	`git clone -q https://github.com/$PROJECT/${MODULE_NAME}.git ${FOLDER_NAME}`;
-	
-	my $CURR=getcwd();
-	
-	chdir $FOLDER_NAME;
-	`git checkout -q $TAG`;
-	chdir "$CURR";
-	
-	say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
-	
-	print "\n";
+	if (! -d "${FOLDER_NAME}")
+	{
+		print "\n";
+		print "Grabbing $MODULE_NAME at tag: $TAG\n";
+		print "\n";
+		
+		`git clone -q https://github.com/$PROJECT/${MODULE_NAME}.git ${FOLDER_NAME}`;
+		
+		chdir "$FOLDER_NAME";
+		`git checkout -q $TAG`;
+		chdir "..";
+		
+		say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
+		
+		print "\n";
+	}
+	else
+	{
+		print "\n";
+		print "Restoring $MODULE_NAME to tag: $TAG\n";
+		print "\n";
+		
+		chdir "$FOLDER_NAME";
+		`git stash -q`;
+		`git checkout -q $TAG`;
+		chdir "..";
+		
+		say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
+		
+		print "\n";
+	}
 }
 
 sub add_line {
@@ -180,7 +214,7 @@ if (exists($modules{AREA_DETECTOR}))
 	
 	say $RELEASE 'ADCORE=$(AREA_DETECTOR)/ADCore';
 	say $RELEASE 'ADSUPPORT=$(AREA_DETECTOR)/ADSupport';
-	
+		
 	chdir "areaDetector-$modules{AREA_DETECTOR}";
 	
 	`git submodule init`;
@@ -196,35 +230,37 @@ if (exists($modules{AREA_DETECTOR}))
 	if ($WITH_PVA == "YES")
 	{
 		`perl -pi -e "s/#NDPvaConfigure/NDPvaConfigure/g" commonPlugins.cmd`;
-		`perl -pi -e 's/#dbLoadRecords("NDPva/dbLoadRecords("NDPva/g' commonPlugins.cmd`;
+		`perl -pi -e 's/#dbLoadRecords."NDPva/dbLoadRecords."NDPva/g' commonPlugins.cmd`;
 		`perl -pi -e "s/#startPVAServer/startPVAServer/g" commonPlugins.cmd`;
 	}
 	
 	chdir "../../configure";
 	
 	copy("EXAMPLE_CONFIG_SITE.local", "CONFIG_SITE.local");
-	copy("EXAMPLE_CONFIG_SITE.local.WIN32", "CONFIG_SITE.local.WIN32");
 	
-	copy("EXAMPLE_RELEASE_PRODS.local", "RELEASE_PRODS.local");
-	copy("EXAMPLE_RELEASE_LIBS.local", "RELEASE_LIBS.local");
-	copy("EXAMPLE_RELEASE.local", "RELEASE.local");
-	
-	add_line("WITH_GRAPHICSMAGICK = NO", "CONFIG_SITE.local.vxWorks");
-	add_line("WITH_BLOSC = NO", "CONFIG_SITE.local.vxWorks");
-	add_line("WITH_BITSHUFFLE = NO", "CONFIG_SITE.local.vxWorks");
-	add_line("WITH_JSON = NO", "CONFIG_SITE.local.vxWorks");
-	
-	add_line("WITH_GRAPHICSMAGICK = NO", "CONFIG_SITE.local.linux-x86_64.linux-arm");
-	add_line("WITH_BITSHUFFLE = NO", "CONFIG_SITE.local.linux-x86_64.linux-arm");
-	copy("CONFIG_SITE.local.linux-x86_64.linux-arm", "CONFIG_SITE.local.linux-x86.linux-arm");
-
 	if ($WITH_PVA == "NO")
 	{
 		`perl -pi -e "s/WITH_PVA = YES/WITH_PVA = NO" CONFIG_SITE.local`;
 		`perl -pi -e "s/WITH_QSRV = YES/WITH_QSRV = NO" CONFIG_SITE.local`;
 	}
-
+	
+	copy("EXAMPLE_CONFIG_SITE.local.WIN32", "CONFIG_SITE.local.WIN32");
+	copy("EXAMPLE_RELEASE_PRODS.local", "RELEASE_PRODS.local");
+	copy("EXAMPLE_RELEASE_LIBS.local", "RELEASE_LIBS.local");
+	copy("EXAMPLE_RELEASE.local", "RELEASE.local");
+	
 	`perl -pi -e "s/#ADSIMDETECTOR/ADSIMDETECTOR/g" RELEASE.local`;
+	
+	unlink("CONFIG_SITE.local.vxWorks");
+	add_line("WITH_GRAPHICSMAGICK = NO", "CONFIG_SITE.local.vxWorks");
+	add_line("WITH_BLOSC = NO", "CONFIG_SITE.local.vxWorks");
+	add_line("WITH_BITSHUFFLE = NO", "CONFIG_SITE.local.vxWorks");
+	add_line("WITH_JSON = NO", "CONFIG_SITE.local.vxWorks");
+	
+	unlink("CONFIG_SITE.local.linux-x86_64.linux-arm");
+	add_line("WITH_GRAPHICSMAGICK = NO", "CONFIG_SITE.local.linux-x86_64.linux-arm");
+	add_line("WITH_BITSHUFFLE = NO", "CONFIG_SITE.local.linux-x86_64.linux-arm");
+	copy("CONFIG_SITE.local.linux-x86_64.linux-arm", "CONFIG_SITE.local.linux-x86.linux-arm");
 	
 	chdir "../..";
 }
@@ -233,9 +269,12 @@ if (exists($modules{ASYN}))
 {
 	chdir "asyn-$modules{ASYN}";
 	
+	unlink("configure/RELEASE.local");
 	add_line("EPICS_BASE=", "./configure/RELEASE.local");
 	add_line("SUPPORT=", "./configure/RELEASE.local");
 	add_line("IPAC=", "./configure/RELEASE.local");
+	
+	my $tirpc = "NO";
 	
 	if (-e "/etc/redhat-release")
 	{
@@ -243,10 +282,22 @@ if (exists($modules{ASYN}))
 		
 		if (grep(/release 8/, $version))
 		{
-			add_line("TIRPC = YES", "./configure/CONFIG_SITE.Common.linux-x86_64");
-
-			copy("./configure/CONFIG_SITE.Common.linux-x86_64", "./configure/CONFIG_SITE.Common.linux-x86_64-debug");
+			$tirpc = "YES";
 		}
+	}
+	
+	if (-e "/usr/include/tirpc/rpc/rpc.h")
+	{
+		$tirpc = "YES";
+	}
+	
+	
+	if ($tirpc == "YES")
+	{
+		unlink("./configure/CONFIG_SITE.Common.linux-x86_64");
+		add_line("TIRPC = YES", "./configure/CONFIG_SITE.Common.linux-x86_64");
+
+		copy("./configure/CONFIG_SITE.Common.linux-x86_64", "./configure/CONFIG_SITE.Common.linux-x86_64-debug");
 	}
 	
 	chdir "..";
@@ -266,8 +317,13 @@ if (exists($modules{DXP}))
 {
 	chdir "dxp-$modules{DXP}";
 	add_line("EPICS_BASE=", "./configure/RELEASE");
+	
+	unlink("configure/CONFIG_SITE.linux-x86.linux-arm");
 	add_line("LINUX_USB_INSTALLED = NO", "./configure/CONFIG_SITE.linux-x86.linux-arm");
+	
+	unlink("configure/CONFIG_SITE.linux-86_64.linux-arm");
 	add_line("LINUX_USB_INSTALLED = NO", "./configure/CONFIG_SITE.linux-x86_64.linux-arm");
+	
 	chdir "..";
 }
 
@@ -287,7 +343,7 @@ if (exists($modules{GALIL}))
 	
 	chdir "Galil-3-0-$modules{GALIL}";
 	
-	rcopy("${FILTER_TAG}/.", "./");
+	copy_recur("${FILTER_TAG}/.", "./");
 	rmtree("${FILTER_TAG}");
 	
 	copy("./config/GALILRELEASE", "./configure/RELEASE.local");
@@ -325,6 +381,7 @@ if (exists($modules{MEASCOMP}))
 	
 	if ($^O == "linux")
 	{
+		rmtree("libuldaq-${ULDAQ}");
 		`curl -O https://github.com/mccdaq/uldaq/releases/download/v${ULDAQ}/libuldaq-${ULDAQ}.tar.bz2`;
 		`tar -xvjf libuldaq-${ULDAQ}.tar.bz2`;
 		unlink("libuldaq-${ULDAQ}.tar.bz2");
@@ -337,6 +394,7 @@ if (exists($modules{MEASCOMP}))
 		`make`;
 		`make install || true`;
 		
+		unlink("../configure/CONFIG_SITE.local");
 		add_line("USR_LDFLAGS+=-L${PWD}/lib", "../configure/CONFIG_SITE.local");
 		add_line("USR_CPPFLAGS+=-I${PWD}/include", "../configure/CONFIG_SITE.local");
 		
@@ -355,6 +413,9 @@ if (exists($modules{MCA}))
 {
 	chdir "mca-$modules{MCA}";
 	add_line("SCALER=", "./configure/RELEASE");
+	
+	unlink("configure/CONFIG_SITE.linux-x86.linux-arm");
+	unlink("configure/CONFIG_SITE.linux-x86_64.linux-arm");
 	add_line("LINUX_LIBUSB-1.0_INSTALLED = NO", "./configure/CONFIG_SITE.linux-x86_64.linux-arm");
 	add_line("LINUX_LIBUSB-1.0_INSTALLED = NO", "./configure/CONFIG_SITE.linux-x86.linux-arm");
 	chdir "..";
@@ -397,14 +458,15 @@ if (exists($modules{SNCSEQ}))
 	my $FILTER_TAG=$modules{SNCSEQ};
 	
 	$FILTER_TAG =~ s/\./-/g;
-		
+	
+	rmtree("seq-${FILTER_TAG}");
+	say $RELEASE "SNCSEQ=\$(SUPPORT)/seq-${FILTER_TAG}";
+	
 	`curl -O https://www-csr.bessy.de/control/SoftDist/sequencer/releases/seq-${TAG}.tar.gz`;
 	
 	`tar zxf seq-${TAG}.tar.gz`;
 	move("seq-${TAG}", "seq-${FILTER_TAG}");
 	unlink "seq-${TAG}.tar.gz";
-	
-	say $RELEASE "SNCSEQ=\$(SUPPORT)/seq-${FILTER_TAG}";
 }
 
 `make release`;

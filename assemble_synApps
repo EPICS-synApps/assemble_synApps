@@ -63,7 +63,7 @@ if ($releasefile eq "default")
 	$modules{'DXP'} = 'master';
 	$modules{'DXPSITORO'} = 'master';
 	$modules{'DEVIOCSTATS'} = 'master';
-	#$modules{'ETHERIP'} = 'ether_ip-3-3';
+	$modules{'ETHERIP'} = 'ether_ip-3-3';
 	$modules{'GALIL'} = 'V3-6';
 	$modules{'IP'} = 'master';
 	$modules{'IPAC'} = 'master';
@@ -318,11 +318,11 @@ if (exists($modules{ALLENBRADLEY}))
 	move("allenBradley-${TAG}", "allenBradley-${FILTER_TAG}");
 	unlink "allenBradley-${TAG}.tar.gz";
 	
-	chdir "allenBradley-$TAG"
-	add_line("-include \$(TOP)/../RELEASE.local", "./configure/RELEASE")
-	add_line("-include \$(TOP)/../RELEASE.\$(EPICS_HOST_ARCH).local", "./configure/RELEASE")
-	add_line("-include \$(TOP)/configure/RELEASE.local", "./configure/RELEASE")
-	chdir ".."
+	chdir "allenBradley-$TAG";
+	add_line("-include \$(TOP)/../RELEASE.local", "./configure/RELEASE");
+	add_line("-include \$(TOP)/../RELEASE.\$(EPICS_HOST_ARCH).local", "./configure/RELEASE");
+	add_line("-include \$(TOP)/configure/RELEASE.local", "./configure/RELEASE");
+	chdir "..";
 }
 
 

@@ -11,6 +11,7 @@ use Getopt::Long;
 my $releasefile="default";
 
 my %modules = ();
+my %setmodule = ();
 
 my $EPICS_BASE='/home/keenan/epics/base/base-7.0.7';
 my $SUPPORT='master';
@@ -21,11 +22,14 @@ my $WITH_PVA='YES';
 my $SYNAPPS_DIR='git';
 
 my $HELP;
+my $CHECK;
 
 GetOptions ("config=s" => \$releasefile,
             "dir=s" => \$SYNAPPS_DIR,
             "base=s" => \$EPICS_BASE,
-            "help" => \$HELP) or die("error");
+			"set=s" => \%setmodule,
+            "help" => \$HELP,
+			"check" => \$CHECK) or die("error");
 
 if ($HELP)
 {
@@ -33,18 +37,21 @@ if ($HELP)
 	print "\n";
 	print "\t--config=<config filepath>\n";
 	print "\t--dir=<synapps dir name>\n";
+	print "\t--set <module>=<tag>\n";
 	print "\t--base=<EPICS BASE location>\n";
 	print "\t--help\n";
+	print "\t--check\n";
 	
 	exit;
 }
-			
+
+
 if ($releasefile eq "default")
 {
 	$modules{'ALLENBRADLEY'} = 'master';
 	$modules{'ALIVE'} = 'master';
 	$modules{'AREA_DETECTOR'} = 'master';
-	$modules{'AREA_DETECTOR_SUB'} = 'ADCore ADSupport ADSimDetector';
+	$modules{'AREA_DETECTOR_SUBMODULES'} = ''; # Space-separated list of extra submodules to check out
 	$modules{'ASYN'} = 'master';
 	$modules{'AUTOSAVE'} = 'master';
 	$modules{'BUSY'} = 'master';
@@ -103,6 +110,28 @@ elsif (-e $releasefile)
 	close($releasehandle);
 }
 
+foreach my $change (keys %setmodule)
+{
+	$modules{$change} = $setmodule{$change};
+}
+
+
+if ($CHECK)
+{
+	print("Module Definitions:\n");
+	foreach my $mod (sort keys %modules)
+	{
+		print("\t$mod = $modules{$mod}\n");
+	}
+	
+	exit;
+}
+
+
+
+#
+# Used because the recursive copy library isn't included
+# in all perl distributions
 sub copy_recur {
 	my @parms = @_;
 	
@@ -116,19 +145,8 @@ sub copy_recur {
 	}
 }
 
-sub get_support {
-	my @parms = @_;
-	
-	
-	if (! -d "${parms[0]}")
-	{
-		`git clone -q https://github.com/EPICS-synApps/${parms[0]}.git`;
-		chdir "${parms[0]}";
-		`git checkout -q ${parms[1]}`;
-		chdir "..";
-	}
-}
 
+# Pulls a given repo or restores it to a clean state if it already exists
 sub get_repo {
 	my @parms = @_;
 	
@@ -166,6 +184,7 @@ sub get_repo {
 		print "\n";
 		
 		chdir "$FOLDER_NAME";
+		`git stash -q`;
 		`git clean -fdx`;
 		`git checkout -q $TAG`;
 		chdir "..";
@@ -176,6 +195,9 @@ sub get_repo {
 	}
 }
 
+
+# Append a single line to a file
+# Creates the file if it doesn't exist
 sub add_line {
 	my @params = @_;
 	
@@ -187,18 +209,78 @@ sub add_line {
 	close($temp);
 }
 
+
+
+#################################
+# Module Repository Information #
+#################################
+
+my %module_info = ();
+$module_info{ALIVE}         = {group => "epics-modules",         repo => "alive"};
+$module_info{AREA_DETECTOR} = {group => "areaDetector",          repo => "areaDetector"};
+$module_info{ASYN}          = {group => "epics-modules",         repo => "asyn"};
+$module_info{AUTOSAVE}      = {group => "epics-modules",         repo => "autosave"};
+$module_info{BUSY}          = {group => "epics-modules",         repo => "busy"};
+$module_info{CALC}          = {group => "epics-modules",         repo => "calc"};
+$module_info{CAMAC}         = {group => "epics-modules",         repo => "camac"};
+$module_info{CAPUTRECORDER} = {group => "epics-modules",         repo => "caputRecorder"};
+$module_info{DAC128V}       = {group => "epics-modules",         repo => "dac128V"};
+$module_info{DELAYGEN}      = {group => "epics-modules",         repo => "delaygen"};
+$module_info{DXP}           = {group => "epics-modules",         repo => "dxp"};
+$module_info{DXPSITORO}     = {group => "epics-modules",         repo => "dxpSITORO"};
+$module_info{DEVIOCSTATS}   = {group => "epics-modules",         repo => "iocStats"};
+$module_info{ETHERIP}       = {group => "epics-modules",         repo => "ether_ip"};
+$module_info{GALIL}         = {group => "motorapp",              repo => "Galil-3-0"};
+$module_info{IP}            = {group => "epics-modules",         repo => "ip"};
+$module_info{IPAC}          = {group => "epics-modules",         repo => "ipac"};
+$module_info{IP330}         = {group => "epics-modules",         repo => "ip330"};
+$module_info{IPUNIDIG}      = {group => "epics-modules",         repo => "ipUnidig"};
+$module_info{LOVE}          = {group => "epics-modules",         repo => "love"};
+$module_info{LUA}           = {group => "epics-modules",         repo => "lua"};
+$module_info{MCA}           = {group => "epics-modules",         repo => "mca"};
+$module_info{MEASCOMP}      = {group => "epics-modules",         repo => "measComp"};
+$module_info{MODBUS}        = {group => "epics-modules",         repo => "modbus"};
+$module_info{MOTOR}         = {group => "epics-modules",         repo => "motor"};
+$module_info{OPTICS}        = {group => "epics-modules",         repo => "optics"};
+$module_info{QUADEM}        = {group => "epics-modules",         repo => "quadEM"};
+$module_info{SCALER}        = {group => "epics-modules",         repo => "scaler"};
+$module_info{SOFTGLUE}      = {group => "epics-modules",         repo => "softGlue"};
+$module_info{SOFTGLUEZYNQ}  = {group => "epics-modules",         repo => "softGlueZynq"};
+$module_info{SSCAN}         = {group => "epics-modules",         repo => "sscan"};
+$module_info{STD}           = {group => "epics-modules",         repo => "std"};
+$module_info{STREAM}        = {group => "paulscherrerinstitute", repo => "StreamDevice"};
+$module_info{VAC}           = {group => "epics-modules",         repo => "vac"};
+$module_info{VME}           = {group => "epics-modules",         repo => "vme"};
+$module_info{XSPRESS3}      = {group => "epics-modules",         repo => "xspress3"};
+$module_info{YOKOGAWA_DAS}  = {group => "epics-modules",         repo => "Yokogawa_DAS"};
+$module_info{XXX}           = {group => "epics-modules",         repo => "xxx"};
+
+
+
+
+####################
+# SynApps Creation #
+####################
+
 mkdir "${SYNAPPS_DIR}";
 chdir "${SYNAPPS_DIR}";
 
-get_support("support", "master");
+if (! -d "support")
+{
+	`git clone -q https://github.com/EPICS-synApps/support.git`;
+	chdir "support";
+	`git checkout -q $SUPPORT`;
+	chdir "..";
+}
+
 chdir "support";
 
-my $SUPPORT = getcwd();
+my $SUPPORT_DIR = getcwd();
 
 open(my $RELEASE, '>', "configure/RELEASE") or die("can't open RELEASE");
 
 
-say $RELEASE  "SUPPORT=$SUPPORT";
+say $RELEASE  "SUPPORT=$SUPPORT_DIR";
 say $RELEASE  '-include $(TOP)/configure/SUPPORT.$(EPICS_HOST_ARCH)';
 say $RELEASE  "EPICS_BASE=$EPICS_BASE";
 say $RELEASE  '-include $(TOP)/configure/EPICS_BASE';
@@ -206,48 +288,24 @@ say $RELEASE  '-include $(TOP)/configure/EPICS_BASE.$(EPICS_HOST_ARCH)';
 say $RELEASE  "";
 say $RELEASE  "";
 
-if (exists($modules{ALIVE}))         { get_repo("epics-modules",         "alive",         "ALIVE",         "$modules{ALIVE}",         $RELEASE ); }
-if (exists($modules{ASYN}))          { get_repo("epics-modules",         "asyn",          "ASYN",          "$modules{ASYN}",          $RELEASE ); }
-if (exists($modules{AUTOSAVE}))      { get_repo("epics-modules",         "autosave",      "AUTOSAVE",      "$modules{AUTOSAVE}",      $RELEASE ); }
-if (exists($modules{BUSY}))          { get_repo("epics-modules",         "busy",          "BUSY",          "$modules{BUSY}",          $RELEASE ); }
-if (exists($modules{CALC}))          { get_repo("epics-modules",         "calc",          "CALC",          "$modules{CALC}",          $RELEASE ); }
-if (exists($modules{CAMAC}))         { get_repo("epics-modules",         "camac",         "CAMAC",         "$modules{CAMAC}",         $RELEASE ); }
-if (exists($modules{CAPUTRECORDER})) { get_repo("epics-modules",         "caputRecorder", "CAPUTRECORDER", "$modules{CAPUTRECORDER}", $RELEASE ); }
-if (exists($modules{DAC128V}))       { get_repo("epics-modules",         "dac128V",       "DAC128V",       "$modules{DAC128V}",       $RELEASE ); }
-if (exists($modules{DELAYGEN}))      { get_repo("epics-modules",         "delaygen",      "DELAYGEN",      "$modules{DELAYGEN}",      $RELEASE ); }
-if (exists($modules{DXP}))           { get_repo("epics-modules",         "dxp",           "DXP",           "$modules{DXP}",           $RELEASE ); }
-if (exists($modules{DXPSITORO}))     { get_repo("epics-modules",         "dxpSITORO",     "DXPSITORO",     "$modules{DXPSITORO}",     $RELEASE ); }
-if (exists($modules{DEVIOCSTATS}))   { get_repo("epics-modules",         "iocStats",      "DEVIOCSTATS",   "$modules{DEVIOCSTATS}",   $RELEASE ); }
-if (exists($modules{ETHERIP}))       { get_repo("epics-modules",         "ether_ip",      "ETHERIP",       "$modules{ETHERIP}",       $RELEASE ); }
-if (exists($modules{GALIL}))         { get_repo("motorapp",              "Galil-3-0",     "GALIL",         "$modules{GALIL}",         $RELEASE ); }
-if (exists($modules{IP}))            { get_repo("epics-modules",         "ip",            "IP",            "$modules{IP}",            $RELEASE ); }
-if (exists($modules{IPAC}))          { get_repo("epics-modules",         "ipac",          "IPAC",          "$modules{IPAC}",          $RELEASE ); }
-if (exists($modules{IP330}))         { get_repo("epics-modules",         "ip330",         "IP330",         "$modules{IP330}",         $RELEASE ); }
-if (exists($modules{IPUNIDIG}))      { get_repo("epics-modules",         "ipUnidig",      "IPUNIDIG",      "$modules{IPUNIDIG}",      $RELEASE ); }
-if (exists($modules{LOVE}))          { get_repo("epics-modules",         "love",          "LOVE",          "$modules{LOVE}",          $RELEASE ); }
-if (exists($modules{LUA}))           { get_repo("epics-modules",         "lua",           "LUA",           "$modules{LUA}",           $RELEASE ); }
-if (exists($modules{MCA}))           { get_repo("epics-modules",         "mca",           "MCA",           "$modules{MCA}",           $RELEASE ); }
-if (exists($modules{MEASCOMP}))      { get_repo("epics-modules",         "measComp",      "MEASCOMP",      "$modules{MEASCOMP}",      $RELEASE ); }
-if (exists($modules{MODBUS}))        { get_repo("epics-modules",         "modbus",        "MODBUS",        "$modules{MODBUS}",        $RELEASE ); }
-if (exists($modules{MOTOR}))         { get_repo("epics-modules",         "motor",         "MOTOR",         "$modules{MOTOR}",         $RELEASE ); }
-if (exists($modules{OPTICS}))        { get_repo("epics-modules",         "optics",        "OPTICS",        "$modules{OPTICS}",        $RELEASE ); }
-if (exists($modules{QUADEM}))        { get_repo("epics-modules",         "quadEM",        "QUADEM",        "$modules{QUADEM}",        $RELEASE ); }
-if (exists($modules{SCALER}))        { get_repo("epics-modules",         "scaler",        "SCALER",        "$modules{SCALER}",        $RELEASE ); }
-if (exists($modules{SOFTGLUE}))      { get_repo("epics-modules",         "softGlue",      "SOFTGLUE",      "$modules{SOFTGLUE}",      $RELEASE ); }
-if (exists($modules{SOFTGLUEZYNQ}))  { get_repo("epics-modules",         "softGlueZynq",  "SOFTGLUEZYNQ",  "$modules{SOFTGLUEZYNQ}",  $RELEASE ); }
-if (exists($modules{SSCAN}))         { get_repo("epics-modules",         "sscan",         "SSCAN",         "$modules{SSCAN}",         $RELEASE ); }
-if (exists($modules{STD}))           { get_repo("epics-modules",         "std",           "STD",           "$modules{STD}",           $RELEASE ); }
-if (exists($modules{STREAM}))        { get_repo("paulscherrerinstitute", "StreamDevice",  "STREAM",        "$modules{STREAM}",        $RELEASE ); }
-if (exists($modules{VAC}))           { get_repo("epics-modules",         "vac",           "VAC",           "$modules{VAC}",           $RELEASE ); }
-if (exists($modules{VME}))           { get_repo("epics-modules",         "vme",           "VME",           "$modules{VME}",           $RELEASE ); }
-if (exists($modules{XSPRESS3}))      { get_repo("epics-modules",         "xspress3",      "XSPRESS3",      "$modules{XSPRESS3}",      $RELEASE ); }
-if (exists($modules{YOKOGAWA_DAS}))  { get_repo("epics-modules",         "Yokogawa_DAS",  "YOKOGAWA_DAS",  "$modules{YOKOGAWA_DAS}",  $RELEASE ); }
-if (exists($modules{XXX}))           { get_repo("epics-modules",         "xxx",           "XXX",           "$modules{XXX}",           $RELEASE ); }
+
+# Pull in defined modules
+foreach my $key (sort keys %modules)
+{
+	if (exists($module_info{$key}))
+	{
+		get_repo("$module_info{$key}{group}", "$module_info{$key}{repo}", "$key", "$modules{$key}", $RELEASE);
+	}
+}
+
+##############################
+# Additional Module Handling #
+##############################
 
 
 if (exists($modules{AREA_DETECTOR}))
 {
-	get_repo("areaDetector", "areaDetector", "AREA_DETECTOR", "$modules{AREA_DETECTOR}", $RELEASE);
+	#get_repo("areaDetector", "areaDetector", "AREA_DETECTOR", "$modules{AREA_DETECTOR}", $RELEASE);
 
 	chdir "areaDetector-$modules{AREA_DETECTOR}/configure";
 	
@@ -279,7 +337,8 @@ if (exists($modules{AREA_DETECTOR}))
 
 	`git submodule init`;
 	
-	my @submods = split(/ /, $modules{AREA_DETECTOR_SUB});
+	my @submods = ("ADCore", "ADSupport", "ADSimDetector");
+	push @submods, split(/ /, $modules{AREA_DETECTOR_SUBMODULES});
 	
 	foreach my $modname (@submods)
 	{

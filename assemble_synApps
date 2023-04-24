@@ -22,9 +22,12 @@ my $WITH_PVA='YES';
 
 my $SYNAPPS_DIR='git';
 
+if ($releasefile 
+
 $modules{'ALLENBRADLEY'} = 'master';
 $modules{'ALIVE'} = 'master';
 $modules{'AREA_DETECTOR'} = 'master';
+$modules{'AREA_DETECTOR_SUB'} = 'ADCore ADSupport ADSimDetector';
 $modules{'ASYN'} = 'master';
 $modules{'AUTOSAVE'} = 'master';
 $modules{'BUSY'} = 'master';
@@ -129,7 +132,7 @@ sub get_repo {
 		print "\n";
 		
 		chdir "$FOLDER_NAME";
-		`git stash -q`;
+		`git clean -fdx`;
 		`git checkout -q $TAG`;
 		chdir "..";
 		
@@ -211,45 +214,21 @@ if (exists($modules{XXX}))           { get_repo("epics-modules",         "xxx", 
 if (exists($modules{AREA_DETECTOR}))
 {
 	get_repo("areaDetector", "areaDetector", "AREA_DETECTOR", "$modules{AREA_DETECTOR}", $RELEASE);
-	
-	say $RELEASE 'ADCORE=$(AREA_DETECTOR)/ADCore';
-	say $RELEASE 'ADSUPPORT=$(AREA_DETECTOR)/ADSupport';
-		
-	chdir "areaDetector-$modules{AREA_DETECTOR}";
-	
-	`git submodule init`;
-	`git submodule update ADCore`;
-	`git submodule update ADSupport`;
-	`git submodule update ADSimDetector`;
-	
-	chdir "ADCore/iocBoot";
-	
-	copy("EXAMPLE_commonPlugins.cmd", "commonPlugins.cmd");
-	copy("EXAMPLE_commonPlugin_settings.req", "commonPlugin_settings.req");
-	
-	if ($WITH_PVA == "YES")
-	{
-		`perl -pi -e "s/#NDPvaConfigure/NDPvaConfigure/g" commonPlugins.cmd`;
-		`perl -pi -e 's/#dbLoadRecords."NDPva/dbLoadRecords."NDPva/g' commonPlugins.cmd`;
-		`perl -pi -e "s/#startPVAServer/startPVAServer/g" commonPlugins.cmd`;
-	}
-	
-	chdir "../../configure";
+
+	chdir "areaDetector-$modules{AREA_DETECTOR}/configure";
 	
 	copy("EXAMPLE_CONFIG_SITE.local", "CONFIG_SITE.local");
 	
-	if ($WITH_PVA == "NO")
+	if ($WITH_PVA eq "NO")
 	{
-		`perl -pi -e "s/WITH_PVA = YES/WITH_PVA = NO" CONFIG_SITE.local`;
-		`perl -pi -e "s/WITH_QSRV = YES/WITH_QSRV = NO" CONFIG_SITE.local`;
+		`perl -pi -e "s/WITH_PVA = YES/WITH_PVA = NO/g" CONFIG_SITE.local`;
+		`perl -pi -e "s/WITH_QSRV = YES/WITH_QSRV = NO/g" CONFIG_SITE.local`;
 	}
 	
 	copy("EXAMPLE_CONFIG_SITE.local.WIN32", "CONFIG_SITE.local.WIN32");
 	copy("EXAMPLE_RELEASE_PRODS.local", "RELEASE_PRODS.local");
 	copy("EXAMPLE_RELEASE_LIBS.local", "RELEASE_LIBS.local");
 	copy("EXAMPLE_RELEASE.local", "RELEASE.local");
-	
-	`perl -pi -e "s/#ADSIMDETECTOR/ADSIMDETECTOR/g" RELEASE.local`;
 	
 	unlink("CONFIG_SITE.local.vxWorks");
 	add_line("WITH_GRAPHICSMAGICK = NO", "CONFIG_SITE.local.vxWorks");
@@ -262,7 +241,34 @@ if (exists($modules{AREA_DETECTOR}))
 	add_line("WITH_BITSHUFFLE = NO", "CONFIG_SITE.local.linux-x86_64.linux-arm");
 	copy("CONFIG_SITE.local.linux-x86_64.linux-arm", "CONFIG_SITE.local.linux-x86.linux-arm");
 	
-	chdir "../..";
+	chdir "..";
+
+	`git submodule init`;
+	
+	my @submods = split(/ /, $modules{AREA_DETECTOR_SUB});
+	
+	foreach my $modname (@submods)
+	{
+		my $uppername = uc $modname;
+		
+		say $RELEASE "${uppername}=\$(AREA_DETECTOR)/$modname";
+		`git submodule update ${modname}`;
+		`perl -pi -e "s/#${uppername}/${uppername}/g" configure/RELEASE.local`;
+	}
+	
+	chdir "ADCore/iocBoot";
+	
+	copy("EXAMPLE_commonPlugins.cmd", "commonPlugins.cmd");
+	copy("EXAMPLE_commonPlugin_settings.req", "commonPlugin_settings.req");
+	
+	if ($WITH_PVA eq "YES")
+	{
+		`perl -pi -e "s/#NDPvaConfigure/NDPvaConfigure/g" commonPlugins.cmd`;
+		`perl -pi -e "s/#dbLoadRecords."NDPva/dbLoadRecords."NDPva/g" commonPlugins.cmd`;
+		`perl -pi -e "s/#startPVAServer/startPVAServer/g" commonPlugins.cmd`;
+	}
+	
+	chdir "../../..";
 }
 
 if (exists($modules{ASYN}))
@@ -379,7 +385,7 @@ if (exists($modules{MEASCOMP}))
 	chdir "measComp-$modules{MEASCOMP}";
 	
 	
-	if ($^O == "linux")
+	if ($^O eq "linux")
 	{
 		rmtree("libuldaq-${ULDAQ}");
 		`curl -O https://github.com/mccdaq/uldaq/releases/download/v${ULDAQ}/libuldaq-${ULDAQ}.tar.bz2`;
@@ -401,7 +407,7 @@ if (exists($modules{MEASCOMP}))
 		chdir "..";
 	}
 	
-	if ($HAVE_HIDAPI == "NO")
+	if ($HAVE_HIDAPI eq "NO")
 	{
 		`perl -pi -e "s/HAVE_HIDAPI=YES/HAVE_HIDAPI=NO/g" ./configure/CONFIG_SITE*`;
 	}

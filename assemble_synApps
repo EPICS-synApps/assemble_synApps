@@ -48,8 +48,8 @@ if ($HELP)
 
 if ($releasefile eq "default")
 {
-	$modules{'ALLENBRADLEY'} = 'master';
 	$modules{'ALIVE'} = 'master';
+	$modules{'ALLENBRADLEY'} = '2.3';
 	$modules{'AREA_DETECTOR'} = 'master';
 	$modules{'AREA_DETECTOR_SUBMODULES'} = ''; # Space-separated list of extra submodules to check out
 	$modules{'ASYN'} = 'master';

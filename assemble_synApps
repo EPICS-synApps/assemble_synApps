@@ -13,7 +13,7 @@ my $releasefile="default";
 my %modules = ();
 my %setmodule = ();
 
-my $EPICS_BASE='/home/keenan/epics/base/base-7.0.7';
+my $EPICS_BASE='/home/beams/KLANG/Epics/base-7.0.6.1';
 my $SUPPORT='master';
 
 my $HAVE_HIDAPI='NO';
@@ -312,13 +312,13 @@ if (exists($modules{ALLENBRADLEY}))
 	rmtree("allenBradley-${FILTER_TAG}");
 	say $RELEASE "ALLENBRADLEY=\$(SUPPORT)/allenBradley-${FILTER_TAG}";
 	
-	`curl -O https://www.aps.anl.gov/epics/download/modules/allenBradley-${TAG}.tar.gz`;
+	`curl -O https://epics.anl.gov/download/modules/allenBradley-${TAG}.tar.gz`;
 	
 	`tar zxf allenBradley-${TAG}.tar.gz`;
 	move("allenBradley-${TAG}", "allenBradley-${FILTER_TAG}");
 	unlink "allenBradley-${TAG}.tar.gz";
 	
-	chdir "allenBradley-$TAG";
+	chdir "allenBradley-$FILTER_TAG";
 	add_line("-include \$(TOP)/../RELEASE.local", "./configure/RELEASE");
 	add_line("-include \$(TOP)/../RELEASE.\$(EPICS_HOST_ARCH).local", "./configure/RELEASE");
 	add_line("-include \$(TOP)/configure/RELEASE.local", "./configure/RELEASE");

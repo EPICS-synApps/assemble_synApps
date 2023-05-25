@@ -548,6 +548,12 @@ if (exists($modules{MOTOR}))
 	chdir "motor-$modules{MOTOR}";
 	`git submodule init`;
 	`git submodule update`;
+	
+	if (exists($modules{LUA}))
+	{
+		`perl -pi -e "s/#!LUA=/LUA=/g" ./configure/RELEASE`;
+	}
+	
 	chdir "..";
 }
 

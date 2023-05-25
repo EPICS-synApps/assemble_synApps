@@ -143,6 +143,8 @@ sub copy_recur {
 		
 		move("$parms[0]/$_", "$parms[1]/$_");
 	}
+	
+	closedir $dirhandle;
 }
 
 

@@ -3,6 +3,7 @@
 require v5.12;
 
 use Cwd;
+use Fcntl;
 use File::Copy;
 use File::Copy "move";
 use File::Path "rmtree";
@@ -48,16 +49,16 @@ if ($HELP)
 
 if ($releasefile eq "default")
 {
-	$modules{'ALIVE'} = 'master';
+	$modules{'ALIVE'} = 'R1-4-1';
 	$modules{'ALLENBRADLEY'} = '2.3';
 	$modules{'AREA_DETECTOR'} = 'master';
 	$modules{'AREA_DETECTOR_SUBMODULES'} = ''; # Space-separated list of extra submodules to check out
 	$modules{'ASYN'} = 'master';
 	$modules{'AUTOSAVE'} = 'master';
-	$modules{'BUSY'} = 'master';
-	$modules{'CALC'} = 'master';
-	$modules{'CAMAC'} = 'master';
-	$modules{'CAPUTRECORDER'} = 'master';
+	$modules{'BUSY'} = 'R1-7-4';
+	$modules{'CALC'} = 'R3-7-5';
+	$modules{'CAMAC'} = 'R2-7-5';
+	$modules{'CAPUTRECORDER'} = 'R1-7-5';
 	$modules{'DAC128V'} = 'master';
 	$modules{'DELAYGEN'} = 'master';
 	$modules{'DXP'} = 'master';
@@ -65,32 +66,32 @@ if ($releasefile eq "default")
 	$modules{'DEVIOCSTATS'} = 'master';
 	$modules{'ETHERIP'} = 'ether_ip-3-3';
 	$modules{'GALIL'} = 'V3-6';
-	$modules{'IP'} = 'master';
-	$modules{'IPAC'} = 'master';
+	$modules{'IP'} = 'R2-22';
+	$modules{'IPAC'} = '2.16';
 	$modules{'IP330'} = 'master';
 	$modules{'IPUNIDIG'} = 'master';
-	$modules{'LOVE'} = 'master';
+	$modules{'LOVE'} = 'R3-2-9';
 	$modules{'LUA'} = 'master';
-	$modules{'MCA'} = 'master';
-	#$modules{'MEASCOMP'} = 'master';
-	#$modules{'ULDAQ'} = '1.2.1';
+	$modules{'MCA'} = 'R7-10';
+	$modules{'MEASCOMP'} = 'master';
+	$modules{'ULDAQ'} = '1.2.1';
 	$modules{'MODBUS'} = 'master';
-	$modules{'MOTOR'} = 'master';
+	$modules{'MOTOR'} = 'R7-3-1';
 	#$modules{'OPCUA'} = 'v0.9.3';
 	#$modules{'UASDK'} = '/path/to/sdk';
-	$modules{'OPTICS'} = 'master';
+	$modules{'OPTICS'} = 'R2-14';
 	$modules{'QUADEM'} = 'master';
 	$modules{'SNCSEQ'} = '2.2.9';
-	$modules{'SOFTGLUE'} = 'master';
+	$modules{'SOFTGLUE'} = 'R2-8-4';
 	$modules{'SOFTGLUEZYNQ'} = 'master';
 	$modules{'SSCAN'} = 'master';
-	$modules{'SCALER'} = 'master';
-	$modules{'STD'} = 'master';
+	$modules{'SCALER'} = '4.1';
+	$modules{'STD'} = 'R3-6-4';
 	$modules{'STREAM'} = '2.8.24';
-	$modules{'VAC'} = 'master';
-	$modules{'VME'} = 'master';
-	$modules{'YOKOGAWA_DAS'} = 'master';
-	$modules{'XSPRESS3'} = 'master';
+	$modules{'VAC'} = 'R1-9-2';
+	$modules{'VME'} = 'R2-9-5';
+	$modules{'YOKOGAWA_DAS'} = 'R2-0-2';
+	$modules{'XSPRESS3'} = '3.2.7';
 	$modules{'XXX'} = 'master';
 }
 elsif (-e $releasefile)
@@ -314,7 +315,7 @@ if (exists($modules{ALLENBRADLEY}))
 	rmtree("allenBradley-${FILTER_TAG}");
 	say $RELEASE "ALLENBRADLEY=\$(SUPPORT)/allenBradley-${FILTER_TAG}";
 	
-	`curl -O https://epics.anl.gov/download/modules/allenBradley-${TAG}.tar.gz`;
+	`curl -LO https://epics.anl.gov/download/modules/allenBradley-${TAG}.tar.gz`;
 	
 	`tar zxf allenBradley-${TAG}.tar.gz`;
 	move("allenBradley-${TAG}", "allenBradley-${FILTER_TAG}");
@@ -505,17 +506,19 @@ if (exists($modules{MEASCOMP}))
 	
 	if ($^O eq "linux")
 	{
+		my $ULDAQ = $modules{ULDAQ};
+		
 		rmtree("libuldaq-${ULDAQ}");
-		`curl -O https://github.com/mccdaq/uldaq/releases/download/v${ULDAQ}/libuldaq-${ULDAQ}.tar.bz2`;
+		`curl -LO https://github.com/mccdaq/uldaq/releases/download/v${ULDAQ}/libuldaq-${ULDAQ}.tar.bz2`;
 		`tar -xvjf libuldaq-${ULDAQ}.tar.bz2`;
 		unlink("libuldaq-${ULDAQ}.tar.bz2");
 	
 		chdir "libuldaq-${ULDAQ}";
 		
-		my $PWD = getcmd();
+		my $PWD = getcwd();
 		
-		`./configure --prefix=${PWD}`;
-		`make`;
+		system("./configure --prefix=${PWD}");
+		system("make");
 		`make install || true`;
 		
 		unlink("../configure/CONFIG_SITE.local");
@@ -592,7 +595,7 @@ if (exists($modules{SNCSEQ}))
 	rmtree("seq-${FILTER_TAG}");
 	say $RELEASE "SNCSEQ=\$(SUPPORT)/seq-${FILTER_TAG}";
 	
-	`curl -O https://www-csr.bessy.de/control/SoftDist/sequencer/releases/seq-${TAG}.tar.gz`;
+	`curl -LO https://www-csr.bessy.de/control/SoftDist/sequencer/releases/seq-${TAG}.tar.gz`;
 	
 	`tar zxf seq-${TAG}.tar.gz`;
 	move("seq-${TAG}", "seq-${FILTER_TAG}");

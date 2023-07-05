@@ -595,7 +595,10 @@ if (exists($modules{SNCSEQ}))
 	rmtree("seq-${FILTER_TAG}");
 	say $RELEASE "SNCSEQ=\$(SUPPORT)/seq-${FILTER_TAG}";
 	
-	`curl -LO https://www-csr.bessy.de/control/SoftDist/sequencer/releases/seq-${TAG}.tar.gz`;
+	# www-csr.bessy.de is dead :-(
+	# get the seq package from web.archive.org until there is a working host again
+	# `curl -LO https://www-csr.bessy.de/control/SoftDist/sequencer/releases/seq-${TAG}.tar.gz`;
+	`curl -LO http://web.archive.org/web/20230128080042/http://www-csr.bessy.de/control/SoftDist/sequencer/releases/seq-${TAG}.tar.gz`;
 	
 	`tar zxf seq-${TAG}.tar.gz`;
 	move("seq-${TAG}", "seq-${FILTER_TAG}");

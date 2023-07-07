@@ -81,7 +81,7 @@ if ($releasefile eq "default")
 	#$modules{'UASDK'} = '/path/to/sdk';
 	$modules{'OPTICS'} = 'R2-14';
 	$modules{'QUADEM'} = 'master';
-	$modules{'SNCSEQ'} = '2.2.9';
+	$modules{'SNCSEQ'} = 'R2-2-9';
 	$modules{'SOFTGLUE'} = 'R2-8-4';
 	$modules{'SOFTGLUEZYNQ'} = 'master';
 	$modules{'SSCAN'} = 'master';
@@ -247,6 +247,7 @@ $module_info{MOTOR}         = {group => "epics-modules",         repo => "motor"
 $module_info{OPTICS}        = {group => "epics-modules",         repo => "optics"};
 $module_info{QUADEM}        = {group => "epics-modules",         repo => "quadEM"};
 $module_info{SCALER}        = {group => "epics-modules",         repo => "scaler"};
+$module_info{SNCSEQ}        = {group => "mdavidsaver",           repo => "sequencer-mirror"};
 $module_info{SOFTGLUE}      = {group => "epics-modules",         repo => "softGlue"};
 $module_info{SOFTGLUEZYNQ}  = {group => "epics-modules",         repo => "softGlueZynq"};
 $module_info{SSCAN}         = {group => "epics-modules",         repo => "sscan"};
@@ -585,21 +586,22 @@ if (exists($modules{STREAM}))
 	chdir "..";
 }
 
-if (exists($modules{SNCSEQ}))
-{
-	my $TAG=$modules{SNCSEQ};
-	my $FILTER_TAG=$modules{SNCSEQ};
-	
-	$FILTER_TAG =~ s/\./-/g;
-	
-	rmtree("seq-${FILTER_TAG}");
-	say $RELEASE "SNCSEQ=\$(SUPPORT)/seq-${FILTER_TAG}";
-	
-	`curl -LO https://www-csr.bessy.de/control/SoftDist/sequencer/releases/seq-${TAG}.tar.gz`;
-	
-	`tar zxf seq-${TAG}.tar.gz`;
-	move("seq-${TAG}", "seq-${FILTER_TAG}");
-	unlink "seq-${TAG}.tar.gz";
-}
+# Temporarily use mdavidsaver's mirror repo
+#if (exists($modules{SNCSEQ}))
+#{
+#	my $TAG=$modules{SNCSEQ};
+#	my $FILTER_TAG=$modules{SNCSEQ};
+#	
+#	$FILTER_TAG =~ s/\./-/g;
+#	
+#	rmtree("seq-${FILTER_TAG}");
+#	say $RELEASE "SNCSEQ=\$(SUPPORT)/seq-${FILTER_TAG}";
+#	
+#	`curl -LO https://www-csr.bessy.de/control/SoftDist/sequencer/releases/seq-${TAG}.tar.gz`;
+#	
+#	`tar zxf seq-${TAG}.tar.gz`;
+#	move("seq-${TAG}", "seq-${FILTER_TAG}");
+#	unlink "seq-${TAG}.tar.gz";
+#}
 
 `make release`;

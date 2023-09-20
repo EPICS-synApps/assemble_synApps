@@ -51,10 +51,10 @@ if ($releasefile eq "default")
 {
 	$modules{'ALIVE'} = 'R1-4-1';
 	$modules{'ALLENBRADLEY'} = '2.3';
-	$modules{'AREA_DETECTOR'} = 'master';
+	$modules{'AREA_DETECTOR'} = 'R3-12-1';
 	$modules{'AREA_DETECTOR_SUBMODULES'} = ''; # Space-separated list of extra submodules to check out
-	$modules{'ASYN'} = 'master';
-	$modules{'AUTOSAVE'} = 'master';
+	$modules{'ASYN'} = 'R4-44-2';
+	$modules{'AUTOSAVE'} = 'R5-11';
 	$modules{'BUSY'} = 'R1-7-4';
 	$modules{'CALC'} = 'R3-7-5';
 	$modules{'CAMAC'} = 'R2-7-5';
@@ -63,7 +63,7 @@ if ($releasefile eq "default")
 	$modules{'DELAYGEN'} = 'master';
 	$modules{'DXP'} = 'master';
 	$modules{'DXPSITORO'} = 'master';
-	$modules{'DEVIOCSTATS'} = 'master';
+	$modules{'DEVIOCSTATS'} = '3.2.0';
 	$modules{'ETHERIP'} = 'ether_ip-3-3';
 	$modules{'GALIL'} = 'V3-6';
 	$modules{'IP'} = 'R2-22';
@@ -73,7 +73,7 @@ if ($releasefile eq "default")
 	$modules{'LOVE'} = 'R3-2-9';
 	$modules{'LUA'} = 'master';
 	$modules{'MCA'} = 'R7-10';
-	$modules{'MEASCOMP'} = 'master';
+	$modules{'MEASCOMP'} = 'R4-2';
 	$modules{'ULDAQ'} = '1.2.1';
 	$modules{'MODBUS'} = 'master';
 	$modules{'MOTOR'} = 'R7-3-1';

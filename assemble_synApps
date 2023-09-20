@@ -71,7 +71,7 @@ if ($releasefile eq "default")
 	$modules{'IP330'} = 'master';
 	$modules{'IPUNIDIG'} = 'master';
 	$modules{'LOVE'} = 'R3-2-9';
-	$modules{'LUA'} = 'master';
+	$modules{'LUA'} = 'R3-1';
 	$modules{'MCA'} = 'R7-10';
 	$modules{'MEASCOMP'} = 'R4-2';
 	$modules{'ULDAQ'} = '1.2.1';

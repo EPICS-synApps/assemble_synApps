@@ -60,7 +60,7 @@ if ($releasefile eq "default")
 	$modules{'CAMAC'} = 'R2-7-5';
 	$modules{'CAPUTRECORDER'} = 'R1-7-5';
 	$modules{'DAC128V'} = 'master';
-	$modules{'DELAYGEN'} = 'master';
+	$modules{'DELAYGEN'} = 'R1-2-4';
 	$modules{'DXP'} = 'master';
 	$modules{'DXPSITORO'} = 'master';
 	$modules{'DEVIOCSTATS'} = '3.2.0';

@@ -83,7 +83,7 @@ if ($releasefile eq "default")
 	$modules{'QUADEM'} = 'master';
 	$modules{'SNCSEQ'} = 'R2-2-9';
 	$modules{'SOFTGLUE'} = 'R2-8-4';
-	$modules{'SOFTGLUEZYNQ'} = 'master';
+	$modules{'SOFTGLUEZYNQ'} = 'R2-0-5';
 	$modules{'SSCAN'} = 'master';
 	$modules{'SCALER'} = '4.1';
 	$modules{'STD'} = 'R3-6-4';

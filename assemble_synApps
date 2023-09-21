@@ -70,6 +70,7 @@ if ($releasefile eq "default")
 	$modules{'IPAC'} = '2.16';
 	$modules{'IP330'} = 'master';
 	$modules{'IPUNIDIG'} = 'master';
+	$modules{'LABJACK'} = 'master';
 	$modules{'LOVE'} = 'R3-2-9';
 	$modules{'LUA'} = 'R3-1';
 	$modules{'MCA'} = 'R7-10';
@@ -238,6 +239,7 @@ $module_info{IP}            = {group => "epics-modules",         repo => "ip"};
 $module_info{IPAC}          = {group => "epics-modules",         repo => "ipac"};
 $module_info{IP330}         = {group => "epics-modules",         repo => "ip330"};
 $module_info{IPUNIDIG}      = {group => "epics-modules",         repo => "ipUnidig"};
+$module_info{LABJACK}       = {group => "epics-modules",         repo => "LabJack"};
 $module_info{LOVE}          = {group => "epics-modules",         repo => "love"};
 $module_info{LUA}           = {group => "epics-modules",         repo => "lua"};
 $module_info{MCA}           = {group => "epics-modules",         repo => "mca"};

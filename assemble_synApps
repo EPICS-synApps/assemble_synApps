@@ -373,7 +373,6 @@ if (exists($modules{AREA_DETECTOR}))
 	{
 		my $uppername = uc $modname;
 		
-		say $RELEASE "${uppername}=\$(AREA_DETECTOR)/$modname";
 		`git submodule update ${modname}`;
 		`perl -pi -e "s/#${uppername}=/${uppername}=/g" configure/RELEASE.local`;
 	}

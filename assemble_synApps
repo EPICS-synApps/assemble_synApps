@@ -526,7 +526,9 @@ if (exists($modules{MEASCOMP}))
 		unlink("../configure/CONFIG_SITE.local");
 		add_line("USR_LDFLAGS+=-L${PWD}/lib", "../configure/CONFIG_SITE.local");
 		add_line("USR_CPPFLAGS+=-I${PWD}/include", "../configure/CONFIG_SITE.local");
-		
+
+		say $RELEASE  "ULDAQ=${PWD}";
+
 		chdir "..";
 	}
 	

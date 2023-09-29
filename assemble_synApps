@@ -375,7 +375,7 @@ if (exists($modules{AREA_DETECTOR}))
 		
 		say $RELEASE "${uppername}=\$(AREA_DETECTOR)/$modname";
 		`git submodule update ${modname}`;
-		`perl -pi -e "s/#${uppername}/${uppername}/g" configure/RELEASE.local`;
+		`perl -pi -e "s/#${uppername}=/${uppername}=/g" configure/RELEASE.local`;
 	}
 	
 	chdir "ADCore/iocBoot";

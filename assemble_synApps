@@ -59,7 +59,7 @@ if ($releasefile eq "default")
 	$modules{'CALC'} = 'R3-7-5';
 	$modules{'CAMAC'} = 'R2-7-5';
 	$modules{'CAPUTRECORDER'} = 'R1-7-5';
-	$modules{'DAC128V'} = 'master';
+	$modules{'DAC128V'} = 'R2-10-1';
 	$modules{'DANTE'} = 'master';
 	$modules{'DELAYGEN'} = 'R1-2-4';
 	$modules{'DXP'} = 'master';
@@ -69,8 +69,8 @@ if ($releasefile eq "default")
 	$modules{'GALIL'} = 'V3-6';
 	$modules{'IP'} = 'R2-22';
 	$modules{'IPAC'} = '2.16';
-	$modules{'IP330'} = 'master';
-	$modules{'IPUNIDIG'} = 'master';
+	$modules{'IP330'} = 'R2-10';
+	$modules{'IPUNIDIG'} = 'R2-12';
 	$modules{'LABJACK'} = 'R3-0';
 	$modules{'LOVE'} = 'R3-2-9';
 	$modules{'LUA'} = 'R3-1';

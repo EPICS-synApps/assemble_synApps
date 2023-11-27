@@ -63,7 +63,7 @@ if ($releasefile eq "default")
 	$modules{'DANTE'} = 'master';
 	$modules{'DELAYGEN'} = 'R1-2-4';
 	$modules{'DXP'} = 'master';
-	$modules{'DXPSITORO'} = 'master';
+	$modules{'DXPSITORO'} = 'R1-3';
 	$modules{'DEVIOCSTATS'} = '3.2.0';
 	$modules{'ETHERIP'} = 'ether_ip-3-3';
 	$modules{'GALIL'} = 'V3-6';

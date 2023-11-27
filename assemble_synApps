@@ -71,7 +71,7 @@ if ($releasefile eq "default")
 	$modules{'IPAC'} = '2.16';
 	$modules{'IP330'} = 'master';
 	$modules{'IPUNIDIG'} = 'master';
-	$modules{'LABJACK'} = 'master';
+	$modules{'LABJACK'} = 'R3-0';
 	$modules{'LOVE'} = 'R3-2-9';
 	$modules{'LUA'} = 'R3-1';
 	$modules{'MCA'} = 'R7-10';

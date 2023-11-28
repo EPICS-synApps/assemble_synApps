@@ -427,6 +427,8 @@ if (exists($modules{ASYN}))
 		add_line("TIRPC = YES", "./configure/CONFIG_SITE.Common.linux-x86_64");
 
 		copy("./configure/CONFIG_SITE.Common.linux-x86_64", "./configure/CONFIG_SITE.Common.linux-x86_64-debug");
+		copy("./configure/CONFIG_SITE.Common.linux-x86_64", "./configure/CONFIG_SITE.Common.rhel9-x86_64");
+		copy("./configure/CONFIG_SITE.Common.linux-x86_64", "./configure/CONFIG_SITE.Common.rhel9-x86_64-debug");
 	}
 	
 	chdir "..";

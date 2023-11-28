@@ -14,7 +14,7 @@ my $releasefile="default";
 my %modules = ();
 my %setmodule = ();
 
-my $EPICS_BASE='/home/beams/KLANG/Epics/base-7.0.6.1';
+my $EPICS_BASE='/home/beams/KLANG/Epics/base-7.0.7';
 my $SUPPORT='master';
 
 my $HAVE_HIDAPI='NO';
@@ -456,6 +456,15 @@ if (exists($modules{DXP}))
 	chdir "..";
 }
 
+if (exists($modules{DANTE}))
+{
+	chdir "Dante-$modules{DANTE}";
+	
+	`perl -pi -e "s/linux-x86_64/x86_64/g" danteApp/danteSrc/Makefile`;
+	
+	chdir "..";
+}
+
 if (exists($modules{ETHERIP}))
 {
 	chdir "ether_ip-$modules{ETHERIP}";	
@@ -590,6 +599,21 @@ if (exists($modules{STREAM}))
 	
 	chdir "..";
 }
+
+if (exists($modules{XSPRESS3}))
+{
+	my $FILTER_TAG=$modules{XSPRESS3};
+	
+	$FILTER_TAG =~ s/\./-/g;
+	
+	chdir "xspress3-${FILTER_TAG}";
+	
+	`perl -pi -e "s/linux-x86_64/x86_64/g" xspress3App/src/Makefile`;
+	`perl -pi -e "s/linux-x86_64/x86_64/g" iocs/xspress3IOC/xspress3App/src/Makefile`;
+	
+	chdir "..";
+}
+
 
 # Temporarily use mdavidsaver's mirror repo
 #if (exists($modules{SNCSEQ}))

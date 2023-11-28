@@ -635,6 +635,6 @@ if (exists($modules{XSPRESS3}))
 #	unlink "seq-${TAG}.tar.gz";
 #}
 
-close($RELEASE)
+close($RELEASE);
 
 `make release`;

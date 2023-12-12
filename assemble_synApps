@@ -366,8 +366,8 @@ if (exists($modules{AREA_DETECTOR}))
 	
 	chdir "..";
 
-	say $REL "ADCORE=\$(AREA_DETECTOR)/ADCore";
-	say $REL "ADSUPPORT=\$(AREA_DETECTOR)/ADSupport";
+	say $RELEASE "ADCORE=\$(AREA_DETECTOR)/ADCore";
+	say $RELEASE "ADSUPPORT=\$(AREA_DETECTOR)/ADSupport";
 	
 	`git submodule init`;
 	

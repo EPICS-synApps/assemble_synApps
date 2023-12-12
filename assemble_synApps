@@ -62,7 +62,7 @@ if ($releasefile eq "default")
 	$modules{'DAC128V'} = 'R2-10-1';
 	$modules{'DANTE'} = 'master';
 	$modules{'DELAYGEN'} = 'R1-2-4';
-	$modules{'DXP'} = 'master';
+	$modules{'DXP'} = 'R6-1';
 	$modules{'DXPSITORO'} = 'R1-3';
 	$modules{'DEVIOCSTATS'} = '3.2.0';
 	$modules{'ETHERIP'} = 'ether_ip-3-3';
@@ -77,12 +77,12 @@ if ($releasefile eq "default")
 	$modules{'MCA'} = 'R7-10';
 	$modules{'MEASCOMP'} = 'R4-2';
 	$modules{'ULDAQ'} = '1.2.1';
-	$modules{'MODBUS'} = 'master';
+	$modules{'MODBUS'} = 'R3-3';
 	$modules{'MOTOR'} = 'R7-3-1';
 	#$modules{'OPCUA'} = 'v0.9.3';
 	#$modules{'UASDK'} = '/path/to/sdk';
 	$modules{'OPTICS'} = 'R2-14';
-	$modules{'QUADEM'} = 'master';
+	$modules{'QUADEM'} = 'R9-5';
 	$modules{'SNCSEQ'} = 'R2-2-9';
 	$modules{'SOFTGLUE'} = 'R2-8-4';
 	$modules{'SOFTGLUEZYNQ'} = 'R2-0-5';
@@ -93,7 +93,7 @@ if ($releasefile eq "default")
 	$modules{'VAC'} = 'R1-9-2';
 	$modules{'VME'} = 'R2-9-5';
 	$modules{'YOKOGAWA_DAS'} = 'R2-0-2';
-	$modules{'XSPRESS3'} = '3.2.7';
+	$modules{'XSPRESS3'} = '3.2.8';
 	$modules{'XXX'} = 'master';
 }
 elsif (-e $releasefile)

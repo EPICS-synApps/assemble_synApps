@@ -344,8 +344,8 @@ if (exists($modules{AREA_DETECTOR}))
 	
 	if ($WITH_PVA eq "NO")
 	{
-		`perl -pi -e "s/WITH_PVA = YES/WITH_PVA = NO/g" CONFIG_SITE.local`;
-		`perl -pi -e "s/WITH_QSRV = YES/WITH_QSRV = NO/g" CONFIG_SITE.local`;
+		`perl -pi.bak -e "s/WITH_PVA = YES/WITH_PVA = NO/g" CONFIG_SITE.local`;
+		`perl -pi.bak -e "s/WITH_QSRV = YES/WITH_QSRV = NO/g" CONFIG_SITE.local`;
 	}
 	
 	copy("EXAMPLE_CONFIG_SITE.local.WIN32", "CONFIG_SITE.local.WIN32");
@@ -379,7 +379,7 @@ if (exists($modules{AREA_DETECTOR}))
 		my $uppername = uc $modname;
 		
 		`git submodule update ${modname}`;
-		`perl -pi -e "s/#${uppername}=/${uppername}=/g" configure/RELEASE.local`;
+		`perl -pi.bak -e "s/#${uppername}=/${uppername}=/g" configure/RELEASE.local`;
 	}
 	
 	chdir "ADCore/iocBoot";
@@ -389,9 +389,9 @@ if (exists($modules{AREA_DETECTOR}))
 	
 	if ($WITH_PVA eq "YES")
 	{
-		`perl -pi -e "s/#NDPvaConfigure/NDPvaConfigure/g" commonPlugins.cmd`;
-		`perl -pi -e "s/#dbLoadRecords\(\"NDPva/dbLoadRecords\(\"NDPva/g" commonPlugins.cmd`;
-		`perl -pi -e "s/#startPVAServer/startPVAServer/g" commonPlugins.cmd`;
+		`perl -pi.bak -e "s/#NDPvaConfigure/NDPvaConfigure/g" commonPlugins.cmd`;
+		`perl -pi.bak -e "s/#dbLoadRecords\(\"NDPva/dbLoadRecords\(\"NDPva/g" commonPlugins.cmd`;
+		`perl -pi.bak -e "s/#startPVAServer/startPVAServer/g" commonPlugins.cmd`;
 	}
 	
 	chdir "../../..";
@@ -442,7 +442,7 @@ if (exists($modules{CALC}))
 	if (exists($modules{SNCSEQ}))
 	{
 		chdir "calc-$modules{CALC}";
-		`perl -pi -e "s/#SNCSEQ/SNCSEQ/g" configure/RELEASE`;
+		`perl -pi.bak -e "s/#SNCSEQ/SNCSEQ/g" configure/RELEASE`;
 		chdir "..";
 	}
 }
@@ -465,7 +465,7 @@ if (exists($modules{DANTE}))
 {
 	chdir "Dante-$modules{DANTE}";
 	
-	`perl -pi -e "s/linux-x86_64/x86_64/g" danteApp/danteSrc/Makefile`;
+	`perl -pi.bak -e "s/linux-x86_64/x86_64/g" danteApp/danteSrc/Makefile`;
 	
 	chdir "..";
 }
@@ -474,7 +474,7 @@ if (exists($modules{ETHERIP}))
 {
 	chdir "ether_ip-$modules{ETHERIP}";	
 	add_line("EPICS_BASE=", "./configure/RELEASE");
-	`perl -pi -e "s/USR_CFLAGS += -Wno-unused-value/#USR_CFLAGS += -Wno-unused-value/g" ether_ipApp/src/Makefile`;
+	`perl -pi.bak -e "s/USR_CFLAGS += -Wno-unused-value/#USR_CFLAGS += -Wno-unused-value/g" ether_ipApp/src/Makefile`;
 	chdir "..";
 }
 
@@ -491,7 +491,7 @@ if (exists($modules{GALIL}))
 	
 	copy("./config/GALILRELEASE", "./configure/RELEASE.local");
 	
-	`perl -pi -e "s/#CROSS_COMPILER_TARGET_ARCHS.*/CROSS_COMPILER_TARGET_ARCHS=/g" configure/CONFIG_SITE`;
+	`perl -pi.bak -e "s/#CROSS_COMPILER_TARGET_ARCHS.*/CROSS_COMPILER_TARGET_ARCHS=/g" configure/CONFIG_SITE`;
 	
 	chdir "..";
 }
@@ -508,11 +508,11 @@ if (exists($modules{IPAC}))
 	add_line('-include $(TOP)/../RELEASE.$(EPICS_HOST_ARCH).local', "./configure/RELEASE");
 	add_line('-include $(TOP)/configure/RELEASE.local', "./configure/RELEASE");
 	
-	`perl -pi -e "s/#registrar(vipc310Registrar)/registrar(vipc310Registrar)/g" drvIpac/drvIpac.dbd`;
-	`perl -pi -e "s/#registrar(vipc610Registrar)/registrar(vipc610Registrar)/g" drvIpac/drvIpac.dbd`;
-	`perl -pi -e "s/#registrar(vipc616Registrar)/registrar(vipc616Registrar)/g" drvIpac/drvIpac.dbd`;
-	`perl -pi -e "s/#registrar(tvme200Registrar)/registrar(tvme200Registrar)/g" drvIpac/drvIpac.dbd`;
-	`perl -pi -e "s/#registrar(xy9660Registrar)/registrar(xy9660Registrar)/g" drvIpac/drvIpac.dbd`;
+	`perl -pi.bak -e "s/#registrar(vipc310Registrar)/registrar(vipc310Registrar)/g" drvIpac/drvIpac.dbd`;
+	`perl -pi.bak -e "s/#registrar(vipc610Registrar)/registrar(vipc610Registrar)/g" drvIpac/drvIpac.dbd`;
+	`perl -pi.bak -e "s/#registrar(vipc616Registrar)/registrar(vipc616Registrar)/g" drvIpac/drvIpac.dbd`;
+	`perl -pi.bak -e "s/#registrar(tvme200Registrar)/registrar(tvme200Registrar)/g" drvIpac/drvIpac.dbd`;
+	`perl -pi.bak -e "s/#registrar(xy9660Registrar)/registrar(xy9660Registrar)/g" drvIpac/drvIpac.dbd`;
 	
 	chdir "..";
 }
@@ -550,7 +550,7 @@ if (exists($modules{MEASCOMP}))
 	
 	if ($HAVE_HIDAPI eq "NO")
 	{
-		`perl -pi -e "s/HAVE_HIDAPI=YES/HAVE_HIDAPI=NO/g" ./configure/CONFIG_SITE*`;
+		`perl -pi.bak -e "s/HAVE_HIDAPI=YES/HAVE_HIDAPI=NO/g" ./configure/CONFIG_SITE*`;
 	}
 	
 	chdir "..";
@@ -576,7 +576,7 @@ if (exists($modules{MOTOR}))
 	
 	if (exists($modules{LUA}))
 	{
-		`perl -pi -e "s/#!LUA=/LUA=/g" ./configure/RELEASE`;
+		`perl -pi.bak -e "s/#!LUA=/LUA=/g" ./configure/RELEASE`;
 	}
 	
 	chdir "..";
@@ -592,7 +592,7 @@ if (exists($modules{STREAM}))
 	
 	unlink("GNUmakefile");
 	
-	`perl -pi -e "s/PCRE=/#PCRE=/g" ./configure/RELEASE`;
+	`perl -pi.bak -e "s/PCRE=/#PCRE=/g" ./configure/RELEASE`;
 	
 	if (exists($modules{SNCSEQ}))
 	{
@@ -613,8 +613,8 @@ if (exists($modules{XSPRESS3}))
 	
 	chdir "xspress3-${FILTER_TAG}";
 	
-	`perl -pi -e "s/linux-x86_64/x86_64/g" xspress3App/src/Makefile`;
-	`perl -pi -e "s/linux-x86_64/x86_64/g" iocs/xspress3IOC/xspress3App/src/Makefile`;
+	`perl -pi.bak -e "s/linux-x86_64/x86_64/g" xspress3App/src/Makefile`;
+	`perl -pi.bak -e "s/linux-x86_64/x86_64/g" iocs/xspress3IOC/xspress3App/src/Makefile`;
 	
 	chdir "..";
 }

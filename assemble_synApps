@@ -492,7 +492,11 @@ if (exists($modules{GALIL}))
 	rmtree("${FILTER_TAG}");
 	
 	copy("./config/GALILRELEASE", "./configure/RELEASE.local");
-	
+
+	add_line('-include $(TOP)/../RELEASE.local', "./configure/RELEASE");
+	add_line('-include $(TOP)/../RELEASE.$(EPICS_HOST_ARCH).local', "./configure/RELEASE");
+	add_line('-include $(TOP)/configure/RELEASE.local', "./configure/RELEASE");
+
 	`perl -pi.bak -e "s/#CROSS_COMPILER_TARGET_ARCHS.*/CROSS_COMPILER_TARGET_ARCHS=/g" configure/CONFIG_SITE`;
 	
 	chdir "..";

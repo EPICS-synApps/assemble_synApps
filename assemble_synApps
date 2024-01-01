@@ -64,7 +64,7 @@ if ($releasefile eq "default")
 	$modules{'DELAYGEN'} = 'R1-2-4';
 	$modules{'DXP'} = 'R6-1';
 	$modules{'DXPSITORO'} = 'R1-3';
-	$modules{'DEVIOCSTATS'} = '3.2.0';
+	$modules{'DEVIOCSTATS'} = '3.1.16';
 	$modules{'ETHERIP'} = 'ether_ip-3-3';
 	$modules{'GALIL'} = 'V3-5';
 	$modules{'IP'} = 'R2-22';

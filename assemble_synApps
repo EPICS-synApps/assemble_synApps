@@ -58,7 +58,7 @@ if ($releasefile eq "default")
 	$modules{'BUSY'} = 'R1-7-4';
 	$modules{'CALC'} = 'R3-7-5';
 	$modules{'CAMAC'} = 'R2-7-5';
-	$modules{'CAPUTRECORDER'} = 'R1-7-5';
+	$modules{'CAPUTRECORDER'} = 'R1-7-6';
 	$modules{'DAC128V'} = 'R2-10-1';
 	$modules{'DANTE'} = 'master';
 	$modules{'DELAYGEN'} = 'R1-2-4';

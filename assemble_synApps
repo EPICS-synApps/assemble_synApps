@@ -478,7 +478,7 @@ if (exists($modules{ETHERIP}))
 	chdir "ether_ip-$modules{ETHERIP}";	
 	add_line("EPICS_BASE=", "./configure/RELEASE");
 
-	`perl -pi.bak -e "s/DIRS \+= ether_ipApp/#DIRS \+= ether_ipApp/g" Makefile`;
+	`perl -pi.bak -e "s/DIRS \+= testether_ipApp/#DIRS \+= testether_ipApp/g" Makefile`;
 
 	`perl -pi.bak -e "s/USR_CFLAGS \+= -Wno-unused-value/USR_CFLAGS_Darwin \+= -Wno-unused-value/g" ether_ipApp/src/Makefile`;
 	`perl -pi.bak -e "s/SYS_DLL_LIBS/USR_SYS_LIBS/g" ether_ipApp/src/Makefile`;

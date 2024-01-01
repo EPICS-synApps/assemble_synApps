@@ -498,6 +498,11 @@ if (exists($modules{GALIL}))
 	add_line('-include $(TOP)/configure/RELEASE.local', "./configure/RELEASE");
 
 	`perl -pi.bak -e "s/#CROSS_COMPILER_TARGET_ARCHS.*/CROSS_COMPILER_TARGET_ARCHS=/g" configure/CONFIG_SITE`;
+
+	if (exists($modules(SNCSEQ)))
+	{
+		`perl -pi.bak -e "s/asyn motor calc sscan autosave busy/asyn motor calc sscan autosave busy seq pv" GalilTestApp/src/Makefile`;
+	}
 	
 	chdir "..";
 }

@@ -506,7 +506,7 @@ if (exists($modules{GALIL}))
 
 	`perl -pi.bak -e "s/#CROSS_COMPILER_TARGET_ARCHS.*/CROSS_COMPILER_TARGET_ARCHS=/g" configure/CONFIG_SITE`;
 
-	if (exists($modules(SNCSEQ)))
+	if (exists($modules{SNCSEQ}))
 	{
 		`perl -pi.bak -e "s/asyn motor calc sscan autosave busy/asyn motor calc sscan autosave busy seq pv" GalilTestApp/src/Makefile`;
 	}

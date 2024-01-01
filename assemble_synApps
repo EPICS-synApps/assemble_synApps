@@ -508,7 +508,7 @@ if (exists($modules{GALIL}))
 
 	if (exists($modules{SNCSEQ}))
 	{
-		`perl -pi.bak -e "s/asyn motor calc sscan autosave busy/asyn motor calc sscan autosave busy seq pv" GalilTestApp/src/Makefile`;
+		`perl -pi.bak -e "s/asyn motor calc sscan autosave busy/asyn motor calc sscan autosave busy seq pv/g" GalilTestApp/src/Makefile`;
 	}
 	
 	chdir "..";

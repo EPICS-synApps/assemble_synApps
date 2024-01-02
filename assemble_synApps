@@ -472,9 +472,6 @@ if (exists($modules{DANTE}))
 
 if (exists($modules{ETHERIP}))
 {
-	add_line("undefine ETHERIP", "configure/RELEASE.windows-x64.local");
-	add_line("undefine ETHERIP", "configure/RELEASE.win32-x86.local");
-
 	chdir "ether_ip-$modules{ETHERIP}";	
 	add_line("EPICS_BASE=", "./configure/RELEASE");
 
@@ -659,9 +656,10 @@ if (exists($modules{XSPRESS3}))
 
 say $RELEASE  "";
 say $RELEASE  "";
-say $RELEASE "-include $(TOP)/RELEASE.local";
-say $RELEASE "-include $(TOP)/RELEASE.$(EPICS_HOST_ARCH).local";
-say $RELEASE "-include $(TOP)/configure/RELEASE.local";
+say $RELEASE "-include \$(TOP)/RELEASE.local";
+say $RELEASE "-include \$(TOP)/RELEASE.\$(EPICS_HOST_ARCH).local";
+say $RELEASE "-include \$(TOP)/configure/RELEASE.local";
+say $RELEASE "-include \$(TOP)/configure/RELEASE.\$(EPICS_HOST_ARCH).local";
 
 
 close($RELEASE);

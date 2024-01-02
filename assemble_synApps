@@ -478,7 +478,7 @@ if (exists($modules{ETHERIP}))
 	`perl -pi.bak -e "s/DIRS \+= testether_ipApp/#DIRS \+= testether_ipApp/g" Makefile`;
 
 	`perl -pi.bak -e "s/\QUSR_CFLAGS += -Wno-unused-value\E/\QUSR_CFLAGS_Darwin += -Wno-unused-value\E/g" ether_ipApp/src/Makefile`;
-	`perl -pi.bak -e "s/SYS_DLL_LIBS/USR_SYS_LIBS/g" ether_ipApp/src/Makefile`;
+	`perl -pi.bak -e "s/SYS_DLL_LIBS/USR_SYS_LIBS_WIN32/g" ether_ipApp/src/Makefile`;
 	`perl -pi.bak -e "s/EPICS_UPDATE_LEVEL/EPICS_PATCH_LEVEL/g" ether_ipApp/src/ether_ip.rc`;
 
 	chdir "..";

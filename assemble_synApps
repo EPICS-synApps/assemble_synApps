@@ -536,7 +536,7 @@ if (exists($modules{LABJACK}))
 {
 	chdir "LabJack-$modules{MEASCOMP}";
 
-	`perl -pi.bak -e "s/PROD_IOC_WIN32 = LabJackApp/\Qifeq(x64,\$(ARCH_CLASS)\E\nPROD_IOC_WIN32 = LabJackApp\nendif/g" LabJackApp/src/Makefile`;
+	`perl -pi.bak -e "s/PROD_IOC_WIN32 = LabJackApp/\Qifeq(x64,\$(ARCH_CLASS))\E\nPROD_IOC_WIN32 = LabJackApp\nendif/g" LabJackApp/src/Makefile`;
 
 	chdir "..";
 }

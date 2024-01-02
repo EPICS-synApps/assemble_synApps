@@ -390,7 +390,7 @@ if (exists($modules{AREA_DETECTOR}))
 	if ($WITH_PVA eq "YES")
 	{
 		`perl -pi.bak -e "s/#NDPvaConfigure/NDPvaConfigure/g" commonPlugins.cmd`;
-		`perl -pi.bak -e "s/#dbLoadRecords\(\"NDPva/dbLoadRecords\(\"NDPva/g" commonPlugins.cmd`;
+		`perl -pi.bak -e "s/\Q#dbLoadRecords("NDPva\E/\QdbLoadRecords("NDPva\E/g" commonPlugins.cmd`;
 		`perl -pi.bak -e "s/#startPVAServer/startPVAServer/g" commonPlugins.cmd`;
 	}
 	

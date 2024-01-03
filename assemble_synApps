@@ -608,6 +608,15 @@ if (exists($modules{MOTOR}))
 	chdir "..";
 }
 
+if (exists($modules{QUADEM}))
+{
+	chdir "quadEM-$modules{QUADEM}";
+
+	`rm -f quadEMApp/op/ui/*.ui`;
+
+	chdir "..";
+}
+
 if (exists($modules{STREAM}))
 {
 	my $FILTER_TAG=$modules{STREAM};

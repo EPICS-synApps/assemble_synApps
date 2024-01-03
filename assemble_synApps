@@ -14,8 +14,8 @@ my $releasefile="default";
 my %modules = ();
 my %setmodule = ();
 
-my $EPICS_BASE='/home/beams/KLANG/Epics/base-7.0.7';
-my $SUPPORT='master';
+my $EPICS_BASE='/APSshare/epics/base-7.0.8';
+my $SUPPORT='R6-3';
 
 my $HAVE_HIDAPI='NO';
 my $WITH_PVA='YES';
@@ -60,7 +60,7 @@ if ($releasefile eq "default")
 	$modules{'CAMAC'} = 'R2-7-5';
 	$modules{'CAPUTRECORDER'} = 'R1-7-6';
 	$modules{'DAC128V'} = 'R2-10-1';
-	$modules{'DANTE'} = 'master';
+	#$modules{'DANTE'} = 'master';
 	$modules{'DELAYGEN'} = 'R1-2-4';
 	$modules{'DXP'} = 'R6-1';
 	$modules{'DXPSITORO'} = 'R1-3';
@@ -94,7 +94,7 @@ if ($releasefile eq "default")
 	$modules{'VME'} = 'R2-9-5';
 	$modules{'YOKOGAWA_DAS'} = 'R2-0-2';
 	$modules{'XSPRESS3'} = '3.2.8';
-	$modules{'XXX'} = 'master';
+	$modules{'XXX'} = 'R6-3';
 }
 elsif (-e $releasefile)
 {

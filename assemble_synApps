@@ -645,6 +645,15 @@ if (exists($modules{XSPRESS3}))
 	chdir "..";
 }
 
+if (exists($modules{YOKOGAWA_DAS}))
+{
+	chdir "Yokogawa_DAS-$modules{YOKOGAWA_DAS}";
+
+	`perl -pi.bak -e "s/CROSS_COMPILER_TARGET_ARCHS/#CROSS_COMPILER_TARGET_ARCHS/g" configure/CONFIG_SITE`;
+
+	chdir "..";
+}
+
 
 # Temporarily use mdavidsaver's mirror repo
 #if (exists($modules{SNCSEQ}))

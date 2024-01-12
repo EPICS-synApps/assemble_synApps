@@ -612,7 +612,10 @@ if (exists($modules{QUADEM}))
 {
 	chdir "quadEM-$modules{QUADEM}";
 
-	`rm -f quadEMApp/op/ui/*.ui`;
+	foreach my $file (glob("quadEMApp/op/ui/*.ui"))
+	{
+		unlink("$file");
+	}
 
 	chdir "..";
 }

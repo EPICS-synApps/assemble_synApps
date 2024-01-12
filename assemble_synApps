@@ -79,6 +79,7 @@ if ($releasefile eq "default")
 	$modules{'ULDAQ'} = '1.2.1';
 	$modules{'MODBUS'} = 'R3-3';
 	$modules{'MOTOR'} = 'R7-3-1';
+	#$modules{'MCOREUTILS'} = '1.2.2';
 	#$modules{'OPCUA'} = 'v0.9.3';
 	#$modules{'UASDK'} = '/path/to/sdk';
 	$modules{'OPTICS'} = 'R2-14';
@@ -248,6 +249,7 @@ $module_info{MCA}           = {group => "epics-modules",         repo => "mca"};
 $module_info{MEASCOMP}      = {group => "epics-modules",         repo => "measComp"};
 $module_info{MODBUS}        = {group => "epics-modules",         repo => "modbus"};
 $module_info{MOTOR}         = {group => "epics-modules",         repo => "motor"};
+$module_info{MCOREUTILS}    = {group => "epics-modules",         repo => "MCoreUtils"};
 $module_info{OPTICS}        = {group => "epics-modules",         repo => "optics"};
 $module_info{QUADEM}        = {group => "epics-modules",         repo => "quadEM"};
 $module_info{SCALER}        = {group => "epics-modules",         repo => "scaler"};
@@ -607,6 +609,16 @@ if (exists($modules{MOTOR}))
 	
 	chdir "..";
 }
+
+if (exists($modules{MCOREUTILS}))
+{
+	my $FILTER_TAG=$modules{MCOREUTILS};
+	$FILTER_TAG =~ s/\./-/g;
+	chdir "MCoreUtils-$FILTER_TAG";
+	add_line("-include \$(MCOREUTILS)/configure/RELEASE", "./exampleTop/configure/RELEASE");
+	chdir "..";
+}
+
 
 if (exists($modules{QUADEM}))
 {

@@ -539,8 +539,8 @@ if (exists($modules{LABJACK}))
 {
 	chdir "LabJack-$modules{LABJACK}";
 
-	`perl -pi.bak -e "s/\QLIBRARY_IOC_WIN32 \+= LabJack\E/\Qifeq (windows-x64, $(findstring windows-x64, $(T_A)))\E\nLIBRARY_IOC_WIN32 += LabJack\nendif/g" LabJackApp/src/Makefile`;
-	`perl -pi.bak -e "s/PROD_IOC_WIN32 = LabJackApp/\Qifeq (windows-x64, $(findstring windows-x64, $(T_A)))\E\nPROD_IOC_WIN32 = LabJackApp\nendif/g" LabJackApp/src/Makefile`;
+	`perl -pi.bak -e "s/\QLIBRARY_IOC_WIN32 \+= LabJack\E/\Qifeq (windows-x64, \$(findstring windows-x64, \$(T_A)))\E\nLIBRARY_IOC_WIN32 += LabJack\nendif/g" LabJackApp/src/Makefile`;
+	`perl -pi.bak -e "s/PROD_IOC_WIN32 = LabJackApp/\Qifeq (windows-x64, \$(findstring windows-x64, \$(T_A)))\E\nPROD_IOC_WIN32 = LabJackApp\nendif/g" LabJackApp/src/Makefile`;
 
 	chdir "..";
 }

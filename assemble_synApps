@@ -578,7 +578,10 @@ if (exists($modules{MEASCOMP}))
 	
 	if ($HAVE_HIDAPI eq "NO")
 	{
-		`perl -pi.bak -e "s/HAVE_HIDAPI=YES/HAVE_HIDAPI=NO/g" ./configure/CONFIG_SITE*`;
+		foreach my $file (glob("configure/CONFIG_SITE*"))
+		{
+			`perl -pi.bak -e "s/HAVE_HIDAPI=YES/HAVE_HIDAPI=NO/g" $file`;
+		}
 	}
 	
 	chdir "..";

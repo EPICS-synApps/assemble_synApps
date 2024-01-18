@@ -152,6 +152,29 @@ sub copy_recur {
 }
 
 
+#
+# Used because perl backtick usage seems to be significantly different 
+# between Linux and Windows
+sub do_substitution {
+	my @parms = @_;
+	
+	my $search = $parms[0];
+	my $replace = $parms[1];
+	my $file = $parms[2];
+	
+	rename ($file, $file . '.bak');
+	open (IN, '<' . $file . '.bak') or die $!;
+	open (OUT, '>' . $file) or die $!;
+	while (<IN>)  {
+		$_ =~ s/$search/$replace/g;
+		print OUT $_;
+	}
+	close (IN);
+	close (OUT);
+}
+
+
+
 # Pulls a given repo or restores it to a clean state if it already exists
 sub get_repo {
 	my @parms = @_;
@@ -346,8 +369,8 @@ if (exists($modules{AREA_DETECTOR}))
 	
 	if ($WITH_PVA eq "NO")
 	{
-		`perl -pi.bak -e "s/WITH_PVA = YES/WITH_PVA = NO/g" CONFIG_SITE.local`;
-		`perl -pi.bak -e "s/WITH_QSRV = YES/WITH_QSRV = NO/g" CONFIG_SITE.local`;
+		do_substitution("WITH_PVA = YES", "WITH_PVA = NO", "CONFIG_SITE.local");
+		do_substitution("WITH_QSRV = YES", "WITH_QSRV = NO", "CONFIG_SITE.local");
 	}
 	
 	copy("EXAMPLE_CONFIG_SITE.local.WIN32", "CONFIG_SITE.local.WIN32");
@@ -381,7 +404,7 @@ if (exists($modules{AREA_DETECTOR}))
 		my $uppername = uc $modname;
 		
 		`git submodule update ${modname}`;
-		`perl -pi.bak -e "s/#${uppername}=/${uppername}=/g" configure/RELEASE.local`;
+		do_substitution("#${uppername}=", "${uppername}=", "configure/RELEASE.local");
 	}
 	
 	chdir "ADCore/iocBoot";
@@ -391,9 +414,9 @@ if (exists($modules{AREA_DETECTOR}))
 	
 	if ($WITH_PVA eq "YES")
 	{
-		`perl -pi.bak -e "s/#NDPvaConfigure/NDPvaConfigure/g" commonPlugins.cmd`;
-		`perl -pi.bak -e "s/\Q#dbLoadRecords("NDPva\E/\QdbLoadRecords("NDPva\E/g" commonPlugins.cmd`;
-		`perl -pi.bak -e "s/#startPVAServer/startPVAServer/g" commonPlugins.cmd`;
+		do_substitution("#NDPvaConfigure", "NDPvaConfigure", "commonPlugins.cmd");
+		do_substitution('#dbLoadRecords\("NDPva', 'dbLoadRecords("NDPva', "commonPlugins.cmd");
+		do_substitution("#startPVAServer", "startPVAServer", "commonPlugins.cmd");
 	}
 	
 	chdir "../../..";
@@ -444,7 +467,9 @@ if (exists($modules{CALC}))
 	if (exists($modules{SNCSEQ}))
 	{
 		chdir "calc-$modules{CALC}";
-		`perl -pi.bak -e "s/#SNCSEQ/SNCSEQ/g" configure/RELEASE`;
+		
+		do_substitution("#SNCSEQ", "SNCSEQ", "configure/RELEASE");
+
 		chdir "..";
 	}
 }
@@ -467,7 +492,7 @@ if (exists($modules{DANTE}))
 {
 	chdir "Dante-$modules{DANTE}";
 	
-	`perl -pi.bak -e "s/linux-x86_64/x86_64/g" danteApp/danteSrc/Makefile`;
+	do_substitution("linux-x86_64", "x86_64", "danteApp/danteSrc/Makefile");
 	
 	chdir "..";
 }
@@ -477,11 +502,12 @@ if (exists($modules{ETHERIP}))
 	chdir "ether_ip-$modules{ETHERIP}";	
 	add_line("EPICS_BASE=", "./configure/RELEASE");
 
-	`perl -pi.bak -e "s/\QDIRS += testether_ipApp\E/\Q#DIRS += testether_ipApp\E/g" Makefile`;
+	do_substitution("\QDIRS += testether_ipApp\E", "#DIRS \+= testether_ipApp", "Makefile");
+	
+	do_substitution("\QUSR_CFLAGS += -Wno-unused-value\E", "USR_CFLAGS_Darwin \+= -Wno-unused-value", "ether_ipApp/src/Makefile");
+	do_substitution("SYS_DLL_LIBS", "USR_SYS_LIBS_WIN32", "ether_ipApp/src/Makefile");
 
-	`perl -pi.bak -e "s/\QUSR_CFLAGS += -Wno-unused-value\E/\QUSR_CFLAGS_Darwin += -Wno-unused-value\E/g" ether_ipApp/src/Makefile`;
-	`perl -pi.bak -e "s/SYS_DLL_LIBS/USR_SYS_LIBS_WIN32/g" ether_ipApp/src/Makefile`;
-	`perl -pi.bak -e "s/EPICS_UPDATE_LEVEL/EPICS_PATCH_LEVEL/g" ether_ipApp/src/ether_ip.rc`;
+	do_substitution("EPICS_UPDATE_LEVEL", "EPICS_PATCH_LEVEL", "ether_ipApp/src/ether_ip.rc");
 
 	chdir "..";
 }
@@ -502,13 +528,13 @@ if (exists($modules{GALIL}))
 	add_line('-include $(TOP)/../RELEASE.local', "./configure/RELEASE");
 	add_line('-include $(TOP)/../RELEASE.$(EPICS_HOST_ARCH).local', "./configure/RELEASE");
 	add_line('-include $(TOP)/configure/RELEASE.local', "./configure/RELEASE");
-
-	`perl -pi.bak -e "s/\QLIBRARY_IOC += GalilSupport\E/\QLIBRARY_IOC_Linux += GalilSupport\E\n\QLIBRARY_IOC_WIN32 += GalilSupport\E/g" GalilSup/src/Makefile`;
-	`perl -pi.bak -e "s/\QPROD_IOC = GalilTest\E/\QPROD_IOC_Linux = GalilTest\E\n\QPROD_IOC_WIN32 = GalilTest\E/g" GalilTestApp/src/Makefile`;
-
+	
+	do_substitution("\QLIBRARY_IOC += GalilSupport\E", "LIBRARY_IOC_Linux \+= GalilSupport\nLIBRARY_IOC_WIN32 += GalilSupport", "GalilSup/src/Makefile");
+	do_substitution("PROD_IOC = GalilTest", "PROD_IOC_Linux = GalilTest\nPROD_IOC_WIN32 = GalilTest", "GalilTestApp/src/Makefile");
+	
 	if (exists($modules{SNCSEQ}))
 	{
-		`perl -pi.bak -e "s/asyn motor calc sscan autosave busy/asyn motor calc sscan autosave busy seq pv/g" GalilTestApp/src/Makefile`;
+		do_substitution("asyn motor calc sscan autosave busy", "asyn motor calc sscan autosave busy seq pv", "GalilTestApp/src/Makefile");
 	}
 	
 	chdir "..";
@@ -526,11 +552,9 @@ if (exists($modules{IPAC}))
 	add_line('-include $(TOP)/../RELEASE.$(EPICS_HOST_ARCH).local', "./configure/RELEASE");
 	add_line('-include $(TOP)/configure/RELEASE.local', "./configure/RELEASE");
 	
-	`perl -pi.bak -e "s/#registrar(vipc310Registrar)/registrar(vipc310Registrar)/g" drvIpac/drvIpac.dbd`;
-	`perl -pi.bak -e "s/#registrar(vipc610Registrar)/registrar(vipc610Registrar)/g" drvIpac/drvIpac.dbd`;
-	`perl -pi.bak -e "s/#registrar(vipc616Registrar)/registrar(vipc616Registrar)/g" drvIpac/drvIpac.dbd`;
-	`perl -pi.bak -e "s/#registrar(tvme200Registrar)/registrar(tvme200Registrar)/g" drvIpac/drvIpac.dbd`;
-	`perl -pi.bak -e "s/#registrar(xy9660Registrar)/registrar(xy9660Registrar)/g" drvIpac/drvIpac.dbd`;
+	do_substitution('#registrar\(vipc', "registrar(vipc", "drvIpac/drvIpac.dbd");
+	do_substitution('#registrar\(tvme', "registrar(tvme", "drvIpac/drvIpac.dbd");
+	do_substitution('#registrar\(xy96', "registrar(xy96", "drvIpac/drvIpac.dbd");
 	
 	chdir "..";
 }
@@ -539,8 +563,8 @@ if (exists($modules{LABJACK}))
 {
 	chdir "LabJack-$modules{LABJACK}";
 
-	`perl -pi.bak -e "s/\QLIBRARY_IOC_WIN32 \+= LabJack\E/\Qifeq (windows-x64, \$(findstring windows-x64, \$(T_A)))\E\nLIBRARY_IOC_WIN32 += LabJack\nendif/g" LabJackApp/src/Makefile`;
-	`perl -pi.bak -e "s/PROD_IOC_WIN32 = LabJackApp/\Qifeq (windows-x64, \$(findstring windows-x64, \$(T_A)))\E\nPROD_IOC_WIN32 = LabJackApp\nendif/g" LabJackApp/src/Makefile`;
+	do_substitution ( "PROD_IOC_WIN32 = LabJackApp", "ifeq \$(windows-x64, \$(findstring windows-x64, \$(T_A)))\nPROD_IOC_WIN32 = LabJackApp\nendif", "LabJackApp/src/Makefile");
+	do_substitution ( "\QLIBRARY_IOC_WIN32 += LabJack\E", "ifeq \$(windows-x64, \$(findstring windows-x64, \$(T_A)))\nLIBRARY_IOC_WIN32 \+= LabJack\nendif", "LabJackApp/src/Makefile");
 
 	chdir "..";
 }
@@ -580,7 +604,7 @@ if (exists($modules{MEASCOMP}))
 	{
 		foreach my $file (glob("configure/CONFIG_SITE*"))
 		{
-			`perl -pi.bak -e "s/HAVE_HIDAPI=YES/HAVE_HIDAPI=NO/g" $file`;
+			do_substitution("HAVE_HIDAPI=YES", "HAVE_HIDAPI=NO", $file);
 		}
 	}
 	
@@ -607,7 +631,7 @@ if (exists($modules{MOTOR}))
 	
 	if (exists($modules{LUA}))
 	{
-		`perl -pi.bak -e "s/#!LUA=/LUA=/g" ./configure/RELEASE`;
+		do_substitution("#!LUA=", "LUA=", "configure/RELEASE");
 	}
 	
 	chdir "..";
@@ -645,7 +669,7 @@ if (exists($modules{STREAM}))
 	
 	unlink("GNUmakefile");
 	
-	`perl -pi.bak -e "s/PCRE=/#PCRE=/g" ./configure/RELEASE`;
+	do_substitution( "PCRE=", "#PCRE=", "configure/RELEASE");
 	
 	if (exists($modules{SNCSEQ}))
 	{
@@ -666,8 +690,8 @@ if (exists($modules{XSPRESS3}))
 	
 	chdir "xspress3-${FILTER_TAG}";
 	
-	`perl -pi.bak -e "s/linux-x86_64/x86_64/g" xspress3App/src/Makefile`;
-	`perl -pi.bak -e "s/linux-x86_64/x86_64/g" iocs/xspress3IOC/xspress3App/src/Makefile`;
+	do_substitution("linux-x86_64", "x86_64", "xspress3App/src/Makefile");
+	do_substitution("linux-x86_64", "x86_64", "iocs/xspress3IOC/xspress3App/src/Makefile");
 	
 	chdir "..";
 }
@@ -676,7 +700,7 @@ if (exists($modules{YOKOGAWA_DAS}))
 {
 	chdir "Yokogawa_DAS-$modules{YOKOGAWA_DAS}";
 
-	`perl -pi.bak -e "s/CROSS_COMPILER_TARGET_ARCHS/#CROSS_COMPILER_TARGET_ARCHS/g" configure/CONFIG_SITE`;
+	do_substitution("CROSS_COMPILER_TARGET_ARCHS", "#CROSS_COMPILER_TARGET_ARCHS", "configure/CONFIG_SITE");
 
 	chdir "..";
 }

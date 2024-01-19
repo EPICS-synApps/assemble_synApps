@@ -563,8 +563,8 @@ if (exists($modules{LABJACK}))
 {
 	chdir "LabJack-$modules{LABJACK}";
 
-	do_substitution ( "PROD_IOC_WIN32 = LabJackApp", "ifeq \$(windows-x64, \$(findstring windows-x64, \$(T_A)))\nPROD_IOC_WIN32 = LabJackApp\nendif", "LabJackApp/src/Makefile");
-	do_substitution ( "\QLIBRARY_IOC_WIN32 += LabJack\E", "ifeq \$(windows-x64, \$(findstring windows-x64, \$(T_A)))\nLIBRARY_IOC_WIN32 \+= LabJack\nendif", "LabJackApp/src/Makefile");
+	do_substitution ( "PROD_IOC_WIN32 = LabJackApp", "ifeq (windows-x64, \$(findstring windows-x64, \$(T_A)))\nPROD_IOC_WIN32 = LabJackApp\nendif", "LabJackApp/src/Makefile");
+	do_substitution ( "\QLIBRARY_IOC_WIN32 += LabJack\E", "ifeq (windows-x64, \$(findstring windows-x64, \$(T_A)))\nLIBRARY_IOC_WIN32 \+= LabJack\nendif", "LabJackApp/src/Makefile");
 
 	chdir "..";
 }

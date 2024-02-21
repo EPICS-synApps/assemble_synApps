@@ -727,8 +727,6 @@ say $RELEASE "-include \$(SUPPORT)/RELEASE.local";
 say $RELEASE "-include \$(SUPPORT)/RELEASE.\$(EPICS_HOST_ARCH).local";
 say $RELEASE "-include \$(SUPPORT)/configure/RELEASE.local";
 say $RELEASE "-include \$(SUPPORT)/configure/RELEASE.\$(EPICS_HOST_ARCH).local";
-
-
 close($RELEASE);
 
-`make release`;
+system("make release"); # system() forwards output and errors of the command

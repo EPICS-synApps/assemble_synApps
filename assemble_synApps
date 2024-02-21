@@ -584,7 +584,7 @@ if (exists($modules{MEASCOMP}))
 		
 		system("./configure --prefix=${PWD}");
 		system("make");
-		`make install || true`;
+		`sudo make install || true`;
 		
 		unlink("../configure/CONFIG_SITE.local");
 		add_line("USR_LDFLAGS+=-L${PWD}/lib", "../configure/CONFIG_SITE.local");

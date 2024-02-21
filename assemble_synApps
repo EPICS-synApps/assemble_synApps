@@ -518,15 +518,27 @@ if (exists($modules{GALIL}))
 	
 	copy_recur("${FILTER_TAG}/.", "./");
 	rmtree("${FILTER_TAG}");
-	
-	copy("./config/GALILRELEASE", "./configure/RELEASE.local");
+
+	system("mv config/* configure/");
+	rmtree("config");
+	copy("./configure/GALILRELEASE", "./configure/RELEASE.local");
 
 	add_line('-include $(TOP)/../RELEASE.local', "./configure/RELEASE");
 	add_line('-include $(TOP)/../RELEASE.$(EPICS_HOST_ARCH).local', "./configure/RELEASE");
 	add_line('-include $(TOP)/configure/RELEASE.local', "./configure/RELEASE");
+	add_line('CONFIG = $(EPICS_BASE)/configure', "./configure/CONFIG");
+	add_line('include $(TOP)/configure/RELEASE', "./configure/CONFIG");
+	add_line('include $(CONFIG)/CONFIG', "./configure/CONFIG");
+	add_line('include $(EPICS_BASE)/configure/RULES_TOP', "./configure/RULES_TOP");
+	do_substitution('/configure/RULES', '/configure/RULES_TOP', "GalilTestApp/src/Makefile");
+	do_substitution('/configure/RULES', '/configure/RULES_TOP', "GalilTestApp/Db/Makefile");
+	do_substitution('/configure/RULES', '/configure/RULES_TOP', "GalilSup/Db/Makefile");
+	do_substitution('/configure/RULES', '/configure/RULES_TOP', "GalilSup/src/Makefile");
+
 	
 	do_substitution("\QLIBRARY_IOC += GalilSupport\E", "LIBRARY_IOC_Linux \+= GalilSupport\nLIBRARY_IOC_WIN32 += GalilSupport", "GalilSup/src/Makefile");
 	do_substitution("PROD_IOC = GalilTest", "PROD_IOC_Linux = GalilTest\nPROD_IOC_WIN32 = GalilTest", "GalilTestApp/src/Makefile");
+	system("mkdir -p dbd && cp GalilSup/src/GalilSupport.dbd dbd/");
 	
 	if (exists($modules{SNCSEQ}))
 	{
@@ -730,3 +742,11 @@ say $RELEASE "-include \$(SUPPORT)/configure/RELEASE.\$(EPICS_HOST_ARCH).local";
 close($RELEASE);
 
 system("make release"); # system() forwards output and errors of the command
+
+if (exists($modules{GALIL}))
+{
+	# copy updated RELEASE.local with correct paths to expected GALILRELEASE file
+	chdir "Galil-3-0-$modules{GALIL}/configure";
+	copy("RELEASE.local", "GALILRELEASE");
+	chdir "../..";
+}

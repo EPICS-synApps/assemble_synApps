@@ -202,11 +202,6 @@ sub get_repo {
 		
 		chdir "$FOLDER_NAME";
 		`git checkout -q $TAG`;
-		chdir "..";
-		
-		say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
-		
-		print "\n";
 	}
 	else
 	{
@@ -218,12 +213,10 @@ sub get_repo {
 		`git stash -q`;
 		`git clean -fdx`;
 		`git checkout -q $TAG`;
-		chdir "..";
-		
-		say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
-		
-		print "\n";
 	}
+	chdir "..";
+	say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
+	print "\n";
 }
 
 

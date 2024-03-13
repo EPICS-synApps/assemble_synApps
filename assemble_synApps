@@ -66,7 +66,7 @@ if ($releasefile eq "default")
 	$modules{'DXPSITORO'} = 'R1-3';
 	$modules{'DEVIOCSTATS'} = '3.1.16';
 	$modules{'ETHERIP'} = 'ether_ip-3-3';
-	$modules{'GALIL'} = 'V3-5';
+	$modules{'GALIL'} = 'V3-6';
 	$modules{'IP'} = 'R2-22';
 	$modules{'IPAC'} = '2.16';
 	$modules{'IP330'} = 'R2-10';
@@ -202,11 +202,6 @@ sub get_repo {
 		
 		chdir "$FOLDER_NAME";
 		`git checkout -q $TAG`;
-		chdir "..";
-		
-		say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
-		
-		print "\n";
 	}
 	else
 	{
@@ -218,12 +213,11 @@ sub get_repo {
 		`git stash -q`;
 		`git clean -fdx`;
 		`git checkout -q $TAG`;
-		chdir "..";
-		
-		say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
-		
-		print "\n";
 	}
+	system("mkdir -p configure; echo 'EPICS_BASE=$EPICS_BASE' >> configure/RELEASE.local");
+	chdir "..";
+	say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
+	print "\n";
 }
 
 
@@ -524,15 +518,23 @@ if (exists($modules{GALIL}))
 	
 	copy_recur("${FILTER_TAG}/.", "./");
 	rmtree("${FILTER_TAG}");
-	
-	copy("./config/GALILRELEASE", "./configure/RELEASE.local");
+
+	system("mv config/* configure/");
+	rmtree("config");
+	copy("./configure/GALILRELEASE", "./configure/RELEASE.local");
 
 	add_line('-include $(TOP)/../RELEASE.local', "./configure/RELEASE");
 	add_line('-include $(TOP)/../RELEASE.$(EPICS_HOST_ARCH).local', "./configure/RELEASE");
 	add_line('-include $(TOP)/configure/RELEASE.local', "./configure/RELEASE");
+	add_line('CONFIG = $(EPICS_BASE)/configure', "./configure/CONFIG");
+	add_line('include $(TOP)/configure/RELEASE', "./configure/CONFIG");
+	add_line('include $(CONFIG)/CONFIG', "./configure/CONFIG");
+	add_line('include $(EPICS_BASE)/configure/RULES_TOP', "./configure/RULES_TOP");
+	add_line('include $(CONFIG)/RULES', "./configure/RULES");
 	
 	do_substitution("\QLIBRARY_IOC += GalilSupport\E", "LIBRARY_IOC_Linux \+= GalilSupport\nLIBRARY_IOC_WIN32 += GalilSupport", "GalilSup/src/Makefile");
 	do_substitution("PROD_IOC = GalilTest", "PROD_IOC_Linux = GalilTest\nPROD_IOC_WIN32 = GalilTest", "GalilTestApp/src/Makefile");
+	system("mkdir -p dbd && cp GalilSup/src/GalilSupport.dbd dbd/");
 	
 	if (exists($modules{SNCSEQ}))
 	{
@@ -591,7 +593,7 @@ if (exists($modules{MEASCOMP}))
 		
 		system("./configure --prefix=${PWD}");
 		system("make");
-		`make install || true`;
+		`sudo make install || true`;
 		
 		unlink("../configure/CONFIG_SITE.local");
 		add_line("USR_LDFLAGS+=-L${PWD}/lib", "../configure/CONFIG_SITE.local");
@@ -733,8 +735,14 @@ say $RELEASE "-include \$(SUPPORT)/RELEASE.local";
 say $RELEASE "-include \$(SUPPORT)/RELEASE.\$(EPICS_HOST_ARCH).local";
 say $RELEASE "-include \$(SUPPORT)/configure/RELEASE.local";
 say $RELEASE "-include \$(SUPPORT)/configure/RELEASE.\$(EPICS_HOST_ARCH).local";
-
-
 close($RELEASE);
 
-`make release`;
+system("make release"); # system() forwards output and errors of the command
+
+if (exists($modules{GALIL}))
+{
+	# copy updated RELEASE.local with correct paths to expected GALILRELEASE file
+	chdir "Galil-3-0-$modules{GALIL}/configure";
+	copy("RELEASE.local", "GALILRELEASE");
+	chdir "../..";
+}

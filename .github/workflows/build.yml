@@ -1,0 +1,90 @@
+name: build
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [main pullrequest0]
+  pull_request:
+    branches: [main]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    # convert this to a matrix if builds differ between platforms
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ['ubuntu-latest']
+    steps:
+
+      - name: Install required packages
+        run: |
+          sudo apt-get install -y git build-essential curl libusb-dev libusb-1.0-0-dev re2c x11proto-dev libx11-dev libxext-dev
+
+      # get & build EPICS first
+      - name: Restore cached EPICS
+        id: cache-epics
+        uses: actions/cache/restore@v4
+        with:
+          path: epics-base
+          key: ${{ runner.os }}-epics-base
+
+      - name: Check out epics
+        if: steps.cache-epics.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: epics-base/epics-base
+          ref: '7.0'
+          submodules: recursive
+          path: epics-base
+
+      - name: Build EPICS
+        if: steps.cache-epics.outputs.cache-hit != 'true'
+        run: |
+          cd epics-base
+          make distclean
+          make
+
+      - name: Cache EPICS
+        uses: actions/cache/save@v4
+        with:
+          path: epics-base
+          key: ${{ steps.cache-epics.outputs.cache-primary-key }}
+
+      - name: Check out assemble_synApps
+        uses: actions/checkout@v4
+        with:
+          path: assemble_synApps
+
+      - name: Build synApps
+        run: |
+          ./assemble_synApps/assemble_synApps --base="$(pwd)/epics-base" --dir="$(pwd)/synapps" 2>&1 | tee assemble.log
+          cd synapps/support
+          make 2>&1 | tee ../../make.log
+
+      - name: Check Galil created files
+        run: |
+            cd synapps/support
+            echo Listing all files in Galil-* directory
+            find Galil-* -type f
+
+      - name: Store logs as artifacts
+        if: success() || failure() # always store the logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: build_logs
+          path: |
+            assemble.log
+            make.log
+
+      - name: Store build results as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: synApps+epics
+          path: |
+            assemble_synApps
+            epics-base
+            synapps

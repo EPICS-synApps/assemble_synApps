@@ -530,11 +530,7 @@ if (exists($modules{GALIL}))
 	add_line('include $(TOP)/configure/RELEASE', "./configure/CONFIG");
 	add_line('include $(CONFIG)/CONFIG', "./configure/CONFIG");
 	add_line('include $(EPICS_BASE)/configure/RULES_TOP', "./configure/RULES_TOP");
-	do_substitution('/configure/RULES', '/configure/RULES_TOP', "GalilTestApp/src/Makefile");
-	do_substitution('/configure/RULES', '/configure/RULES_TOP', "GalilTestApp/Db/Makefile");
-	do_substitution('/configure/RULES', '/configure/RULES_TOP', "GalilSup/Db/Makefile");
-	do_substitution('/configure/RULES', '/configure/RULES_TOP', "GalilSup/src/Makefile");
-
+	add_line('include $(CONFIG)/RULES', "./configure/RULES");
 	
 	do_substitution("\QLIBRARY_IOC += GalilSupport\E", "LIBRARY_IOC_Linux \+= GalilSupport\nLIBRARY_IOC_WIN32 += GalilSupport", "GalilSup/src/Makefile");
 	do_substitution("PROD_IOC = GalilTest", "PROD_IOC_Linux = GalilTest\nPROD_IOC_WIN32 = GalilTest", "GalilTestApp/src/Makefile");

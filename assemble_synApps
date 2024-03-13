@@ -66,7 +66,7 @@ if ($releasefile eq "default")
 	$modules{'DXPSITORO'} = 'R1-3';
 	$modules{'DEVIOCSTATS'} = '3.1.16';
 	$modules{'ETHERIP'} = 'ether_ip-3-3';
-	$modules{'GALIL'} = 'V3-5';
+	$modules{'GALIL'} = 'V3-6';
 	$modules{'IP'} = 'R2-22';
 	$modules{'IPAC'} = '2.16';
 	$modules{'IP330'} = 'R2-10';

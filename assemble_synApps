@@ -345,7 +345,7 @@ if (exists($modules{ALLENBRADLEY}))
 	$FILTER_TAG =~ s/\./-/g;
 	
 	rmtree("allenBradley-${FILTER_TAG}");
-	say $RELEASE "ALLENBRADLEY=\$(SUPPORT)/allenBradley-${FILTER_TAG}";
+	say $RELEASE "ALLEN_BRADLEY=\$(SUPPORT)/allenBradley-${FILTER_TAG}";
 	
 	`curl -LO https://epics.anl.gov/download/modules/allenBradley-${TAG}.tar.gz`;
 	

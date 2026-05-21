@@ -212,26 +212,23 @@ sub copy_recur {
 
 
 #
-# Used because perl backtick usage seems to be significantly different 
-# between Linux and Windows
+# Replaces all occurrences of a pattern in a file.
+# Note: $search is used as a regex pattern. Use \Q...\E to match literal strings.
 sub do_substitution {
-	my @parms = @_;
+	my ($search, $replace, $file) = @_;
 	
-	my $search = $parms[0];
-	my $replace = $parms[1];
-	my $file = $parms[2];
+	my $tmpfile = $file . '.tmp';
 	
-	rename ($file, $file . '.bak');
-	open (IN, '<' . $file . '.bak') or die $!;
-	open (OUT, '>' . $file) or die $!;
-	while (<IN>)  {
+	open (my $in, '<', $file) or die "do_substitution: cannot read $file: $!\n";
+	open (my $out, '>', $tmpfile) or die "do_substitution: cannot write $tmpfile: $!\n";
+	while (<$in>)  {
 		$_ =~ s/$search/$replace/g;
-		print OUT $_;
+		print $out $_;
 	}
-	close (IN);
-	close (OUT);
+	close ($in);
+	close ($out);
 	
-	unlink($file . '.bak');
+	rename($tmpfile, $file) or die "do_substitution: cannot rename $tmpfile to $file: $!\n";
 }
 
 

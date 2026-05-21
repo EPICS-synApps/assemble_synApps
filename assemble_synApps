@@ -456,7 +456,7 @@ if (exists($modules{ASYN}))
 	}
 	
 	
-	if ($tirpc == "YES")
+	if ($tirpc eq "YES")
 	{
 		unlink("./configure/CONFIG_SITE.Common.linux-x86_64");
 		add_line("TIRPC = YES", "./configure/CONFIG_SITE.Common.linux-x86_64");

@@ -106,9 +106,17 @@ elsif (-e $releasefile)
 		#Strip newline
 		$line =~ s/\R\z//g;
 		
-		my @parts = split(/=/, $line);
+		# Skip blank lines and comments
+		next if $line =~ /^\s*$/;
+		next if $line =~ /^\s*#/;
 		
-		$modules{"$parts[0]"} = "$parts[1]"
+		# Split on first '=' only, trim whitespace
+		my ($key, $val) = split(/=/, $line, 2);
+		
+		$key =~ s/^\s+|\s+$//g;
+		$val =~ s/^\s+|\s+$//g if defined $val;
+		
+		$modules{$key} = $val // '';
 	}
 	
 	close($releasehandle);

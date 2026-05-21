@@ -139,6 +139,16 @@ if ($CHECK)
 	exit;
 }
 
+if (! -d $EPICS_BASE)
+{
+	die "ERROR: EPICS_BASE directory does not exist: $EPICS_BASE\n";
+}
+
+if (! -f "$EPICS_BASE/include/epicsVersion.h")
+{
+	die "ERROR: $EPICS_BASE does not appear to be a valid EPICS base installation (missing include/epicsVersion.h)\n";
+}
+
 
 
 #

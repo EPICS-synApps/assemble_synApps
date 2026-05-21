@@ -489,7 +489,7 @@ if (exists($modules{DXP}))
 	unlink("configure/CONFIG_SITE.linux-x86.linux-arm");
 	add_line("LINUX_USB_INSTALLED = NO", "./configure/CONFIG_SITE.linux-x86.linux-arm");
 	
-	unlink("configure/CONFIG_SITE.linux-86_64.linux-arm");
+	unlink("configure/CONFIG_SITE.linux-x86_64.linux-arm");
 	add_line("LINUX_USB_INSTALLED = NO", "./configure/CONFIG_SITE.linux-x86_64.linux-arm");
 	
 	chdir "..";

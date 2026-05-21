@@ -316,10 +316,15 @@ open(my $RELEASE, '>', "configure/RELEASE") or die("can't open RELEASE");
 
 
 say $RELEASE  "SUPPORT=$SUPPORT_DIR";
-say $RELEASE  '-include $(TOP)/configure/SUPPORT.$(EPICS_HOST_ARCH)';
+say $RELEASE  '-include \$(SUPPORT)/configure/SUPPORT';
+say $RELEASE  '-include \$(SUPPORT)/configure/SUPPORT.local';
+say $RELEASE  '-include $\(SUPPORT)/configure/SUPPORT.\$(EPICS_HOST_ARCH)';
+say $RELEASE  '-include $\(SUPPORT)/configure/SUPPORT.\$(EPICS_HOST_ARCH).local';
 say $RELEASE  "EPICS_BASE=$EPICS_BASE";
-say $RELEASE  '-include $(TOP)/configure/EPICS_BASE';
-say $RELEASE  '-include $(TOP)/configure/EPICS_BASE.$(EPICS_HOST_ARCH)';
+say $RELEASE  '-include \$(SUPPORT)/configure/EPICS_BASE';
+say $RELEASE  '-include \$(SUPPORT)/configure/EPICS_BASE.local';
+say $RELEASE  '-include \$(SUPPORT)/configure/EPICS_BASE.\$(EPICS_HOST_ARCH)';
+say $RELEASE  '-include \$(SUPPORT)/configure/EPICS_BASE.\$(EPICS_HOST_ARCH).local';
 say $RELEASE  "";
 say $RELEASE  "";
 

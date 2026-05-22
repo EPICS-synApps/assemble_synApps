@@ -319,13 +319,17 @@ sub get_repo {
 	}
 	elsif ($UPDATE)
 	{
-		# Check if already at the correct tag
+		# Check if already at the correct tag or branch
 		chdir "$FOLDER_NAME" or die "ERROR: Cannot enter directory $FOLDER_NAME: $!\n";
-		my $current_tag = `git describe --tags --exact-match HEAD 2>/dev/null`;
-		chomp $current_tag if defined $current_tag;
+		my $current_ref = `git describe --tags --exact-match HEAD 2>/dev/null`;
+		if ($? != 0)
+		{
+			$current_ref = `git symbolic-ref --short HEAD 2>/dev/null`;
+		}
+		chomp $current_ref if defined $current_ref;
 		chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 		
-		if (defined $current_tag && $current_tag eq $TAG)
+		if (defined $current_ref && $current_ref eq $TAG)
 		{
 			info "Skipping $MODULE_NAME (already at $TAG)\n";
 			say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
@@ -666,10 +670,16 @@ if (exists($modules{AREA_DETECTOR}) && (!$UPDATE || $updated{AREA_DETECTOR}))
 	
 	copy("EXAMPLE_CONFIG_SITE.local", "CONFIG_SITE.local");
 	
-	if ($WITH_PVA eq "NO")
+	if ($WITH_PVA eq "YES")
 	{
-		do_substitution("WITH_PVA = YES", "WITH_PVA = NO", "CONFIG_SITE.local");
-		do_substitution("WITH_QSRV = YES", "WITH_QSRV = NO", "CONFIG_SITE.local");
+		do_substitution("WITH_PVXS\\s*=\\s*YES", "#WITH_PVXS = YES", "CONFIG_SITE.local");
+		do_substitution("#WITH_QSRV\\s*=\\s*YES", "WITH_QSRV = YES", "CONFIG_SITE.local");
+	}
+	else
+	{
+		do_substitution("WITH_PVA\\s*=\\s*YES", "WITH_PVA = NO", "CONFIG_SITE.local");
+		do_substitution("WITH_PVXS\\s*=\\s*YES", "WITH_PVXS = NO", "CONFIG_SITE.local");
+		do_substitution("WITH_QSRV\\s*=\\s*YES", "WITH_QSRV = NO", "CONFIG_SITE.local");
 	}
 	
 	copy("EXAMPLE_CONFIG_SITE.local.WIN32", "CONFIG_SITE.local.WIN32");

@@ -259,11 +259,13 @@ sub get_repo {
 		print "Grabbing $MODULE_NAME at tag: $TAG\n";
 		print "\n";
 		
-		`git clone -q https://github.com/$PROJECT/${MODULE_NAME}.git ${FOLDER_NAME}`;
+		system("git", "clone", "-q", "https://github.com/$PROJECT/${MODULE_NAME}.git", "${FOLDER_NAME}");
+		die "ERROR: Failed to clone $MODULE_NAME from $PROJECT\n" if $? != 0;
 		
-		chdir "$FOLDER_NAME";
-		`git checkout -q $TAG`;
-		chdir "..";
+		chdir "$FOLDER_NAME" or die "ERROR: Cannot enter directory $FOLDER_NAME: $!\n";
+		system("git", "checkout", "-q", "$TAG");
+		die "ERROR: Failed to checkout tag $TAG for $MODULE_NAME\n" if $? != 0;
+		chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 		
 		say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
 		
@@ -275,11 +277,12 @@ sub get_repo {
 		print "Restoring $MODULE_NAME to tag: $TAG\n";
 		print "\n";
 		
-		chdir "$FOLDER_NAME";
-		`git stash -q`;
-		`git clean -fdx`;
-		`git checkout -q $TAG`;
-		chdir "..";
+		chdir "$FOLDER_NAME" or die "ERROR: Cannot enter directory $FOLDER_NAME: $!\n";
+		system("git", "stash", "-q");
+		system("git", "clean", "-fdx");
+		system("git", "checkout", "-q", "$TAG");
+		die "ERROR: Failed to checkout tag $TAG for $MODULE_NAME\n" if $? != 0;
+		chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 		
 		say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
 		
@@ -359,17 +362,19 @@ $module_info{XXX}           = {group => "epics-modules",         repo => "xxx"};
 ####################
 
 mkdir "${SYNAPPS_DIR}";
-chdir "${SYNAPPS_DIR}";
+chdir "${SYNAPPS_DIR}" or die "ERROR: Cannot enter directory ${SYNAPPS_DIR}: $!\n";
 
 if (! -d "support")
 {
-	`git clone -q https://github.com/EPICS-synApps/support.git`;
-	chdir "support";
-	`git checkout -q $SUPPORT`;
-	chdir "..";
+	system("git", "clone", "-q", "https://github.com/EPICS-synApps/support.git");
+	die "ERROR: Failed to clone support repository\n" if $? != 0;
+	chdir "support" or die "ERROR: Cannot enter directory support: $!\n";
+	system("git", "checkout", "-q", "$SUPPORT");
+	die "ERROR: Failed to checkout support tag $SUPPORT\n" if $? != 0;
+	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
-chdir "support";
+chdir "support" or die "ERROR: Cannot enter directory support: $!\n";
 
 my $SUPPORT_DIR = getcwd();
 
@@ -413,17 +418,19 @@ if (exists($modules{ALLENBRADLEY}))
 	rmtree("allenBradley-${FILTER_TAG}");
 	say $RELEASE "ALLEN_BRADLEY=\$(SUPPORT)/allenBradley-${FILTER_TAG}";
 	
-	`curl -LO https://epics.anl.gov/download/modules/allenBradley-${TAG}.tar.gz`;
+	system("curl", "-LO", "https://epics.anl.gov/download/modules/allenBradley-${TAG}.tar.gz");
+	die "ERROR: Failed to download allenBradley-${TAG}.tar.gz\n" if $? != 0;
 	
-	`tar zxf allenBradley-${TAG}.tar.gz`;
+	system("tar", "zxf", "allenBradley-${TAG}.tar.gz");
+	die "ERROR: Failed to extract allenBradley-${TAG}.tar.gz\n" if $? != 0;
 	move("allenBradley-${TAG}", "allenBradley-${FILTER_TAG}");
 	unlink "allenBradley-${TAG}.tar.gz";
 	
-	chdir "allenBradley-$FILTER_TAG";
+	chdir "allenBradley-$FILTER_TAG" or die "ERROR: Cannot enter directory allenBradley-$FILTER_TAG: $!\n";
 	add_line("-include \$(TOP)/../RELEASE.local", "./configure/RELEASE");
 	add_line("-include \$(TOP)/../RELEASE.\$(EPICS_HOST_ARCH).local", "./configure/RELEASE");
 	add_line("-include \$(TOP)/configure/RELEASE.local", "./configure/RELEASE");
-	chdir "..";
+	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
 
@@ -431,7 +438,7 @@ if (exists($modules{AREA_DETECTOR}))
 {
 	#get_repo("areaDetector", "areaDetector", "AREA_DETECTOR", "$modules{AREA_DETECTOR}", $RELEASE);
 
-	chdir "areaDetector-$modules{AREA_DETECTOR}/configure";
+	chdir "areaDetector-$modules{AREA_DETECTOR}/configure" or die "ERROR: Cannot enter areaDetector configure directory: $!\n";
 	
 	copy("EXAMPLE_CONFIG_SITE.local", "CONFIG_SITE.local");
 	
@@ -457,12 +464,13 @@ if (exists($modules{AREA_DETECTOR}))
 	add_line("WITH_BITSHUFFLE = NO", "CONFIG_SITE.local.linux-x86_64.linux-arm");
 	copy("CONFIG_SITE.local.linux-x86_64.linux-arm", "CONFIG_SITE.local.linux-x86.linux-arm");
 	
-	chdir "..";
+	chdir ".." or die "ERROR: Cannot return to areaDetector root: $!\n";
 
 	say $RELEASE "ADCORE=\$(AREA_DETECTOR)/ADCore";
 	say $RELEASE "ADSUPPORT=\$(AREA_DETECTOR)/ADSupport";
 	
-	`git submodule init`;
+	system("git", "submodule", "init");
+	warn "WARNING: git submodule init failed for areaDetector\n" if $? != 0;
 	
 	my @submods = ("ADCore", "ADSupport", "ADSimDetector");
 	push @submods, split(/ /, $modules{AREA_DETECTOR_SUBMODULES});
@@ -471,11 +479,12 @@ if (exists($modules{AREA_DETECTOR}))
 	{
 		my $uppername = uc $modname;
 		
-		`git submodule update ${modname}`;
+		system("git", "submodule", "update", "${modname}");
+		warn "WARNING: git submodule update failed for $modname\n" if $? != 0;
 		do_substitution("#${uppername}=", "${uppername}=", "configure/RELEASE.local");
 	}
 	
-	chdir "ADCore/iocBoot";
+	chdir "ADCore/iocBoot" or die "ERROR: Cannot enter ADCore/iocBoot: $!\n";
 	
 	copy("EXAMPLE_commonPlugins.cmd", "commonPlugins.cmd");
 	copy("EXAMPLE_commonPlugin_settings.req", "commonPlugin_settings.req");
@@ -487,12 +496,12 @@ if (exists($modules{AREA_DETECTOR}))
 		do_substitution("#startPVAServer", "startPVAServer", "commonPlugins.cmd");
 	}
 	
-	chdir "../../..";
+	chdir "../../.." or die "ERROR: Cannot return to support directory from ADCore/iocBoot: $!\n";
 }
 
 if (exists($modules{ASYN}))
 {
-	chdir "asyn-$modules{ASYN}";
+	chdir "asyn-$modules{ASYN}" or die "ERROR: Cannot enter directory asyn-$modules{ASYN}: $!\n";
 	
 	unlink("configure/RELEASE.local");
 	add_line("EPICS_BASE=", "./configure/RELEASE.local");
@@ -527,24 +536,24 @@ if (exists($modules{ASYN}))
 		copy("./configure/CONFIG_SITE.Common.linux-x86_64", "./configure/CONFIG_SITE.Common.rhel9-x86_64-debug");
 	}
 	
-	chdir "..";
+	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
 if (exists($modules{CALC}))
 {
 	if (exists($modules{SNCSEQ}))
 	{
-		chdir "calc-$modules{CALC}";
+		chdir "calc-$modules{CALC}" or die "ERROR: Cannot enter directory calc-$modules{CALC}: $!\n";
 		
 		do_substitution("#SNCSEQ", "SNCSEQ", "configure/RELEASE");
 
-		chdir "..";
+		chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 	}
 }
 
 if (exists($modules{DXP}))
 {
-	chdir "dxp-$modules{DXP}";
+	chdir "dxp-$modules{DXP}" or die "ERROR: Cannot enter directory dxp-$modules{DXP}: $!\n";
 	add_line("EPICS_BASE=", "./configure/RELEASE");
 	
 	unlink("configure/CONFIG_SITE.linux-x86.linux-arm");
@@ -553,21 +562,21 @@ if (exists($modules{DXP}))
 	unlink("configure/CONFIG_SITE.linux-x86_64.linux-arm");
 	add_line("LINUX_USB_INSTALLED = NO", "./configure/CONFIG_SITE.linux-x86_64.linux-arm");
 	
-	chdir "..";
+	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
 if (exists($modules{DANTE}))
 {
-	chdir "Dante-$modules{DANTE}";
+	chdir "Dante-$modules{DANTE}" or die "ERROR: Cannot enter directory Dante-$modules{DANTE}: $!\n";
 	
 	do_substitution("linux-x86_64", "x86_64", "danteApp/danteSrc/Makefile");
 	
-	chdir "..";
+	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
 if (exists($modules{ETHERIP}))
 {
-	chdir "ether_ip-$modules{ETHERIP}";	
+	chdir "ether_ip-$modules{ETHERIP}" or die "ERROR: Cannot enter directory ether_ip-$modules{ETHERIP}: $!\n";
 	add_line("EPICS_BASE=", "./configure/RELEASE");
 
 	do_substitution("\QDIRS += testether_ipApp\E", "#DIRS \+= testether_ipApp", "Makefile");
@@ -577,7 +586,7 @@ if (exists($modules{ETHERIP}))
 
 	do_substitution("EPICS_UPDATE_LEVEL", "EPICS_PATCH_LEVEL", "ether_ipApp/src/ether_ip.rc");
 
-	chdir "..";
+	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
 if (exists($modules{GALIL}))
@@ -586,7 +595,7 @@ if (exists($modules{GALIL}))
 	
 	$FILTER_TAG =~ s/V//g;
 	
-	chdir "Galil-3-0-$modules{GALIL}";
+	chdir "Galil-3-0-$modules{GALIL}" or die "ERROR: Cannot enter directory Galil-3-0-$modules{GALIL}: $!\n";
 	
 	copy_recur("${FILTER_TAG}/.", "./");
 	rmtree("${FILTER_TAG}");
@@ -605,7 +614,7 @@ if (exists($modules{GALIL}))
 		do_substitution("asyn motor calc sscan autosave busy", "asyn motor calc sscan autosave busy seq pv", "GalilTestApp/src/Makefile");
 	}
 	
-	chdir "..";
+	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
 if (exists($modules{IPAC}))
@@ -614,7 +623,7 @@ if (exists($modules{IPAC}))
 	
 	$FILTER_TAG =~ s/\./-/g;
 	
-	chdir "ipac-${FILTER_TAG}";
+	chdir "ipac-${FILTER_TAG}" or die "ERROR: Cannot enter directory ipac-${FILTER_TAG}: $!\n";
 	
 	add_line('-include $(TOP)/../RELEASE.local', "./configure/RELEASE");
 	add_line('-include $(TOP)/../RELEASE.$(EPICS_HOST_ARCH).local', "./configure/RELEASE");
@@ -624,22 +633,22 @@ if (exists($modules{IPAC}))
 	do_substitution('#registrar\(tvme', "registrar(tvme", "drvIpac/drvIpac.dbd");
 	do_substitution('#registrar\(xy96', "registrar(xy96", "drvIpac/drvIpac.dbd");
 	
-	chdir "..";
+	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
 if (exists($modules{LABJACK}))
 {
-	chdir "LabJack-$modules{LABJACK}";
+	chdir "LabJack-$modules{LABJACK}" or die "ERROR: Cannot enter directory LabJack-$modules{LABJACK}: $!\n";
 
 	do_substitution ( "PROD_IOC_WIN32 = LabJackApp", "ifeq (windows-x64, \$(findstring windows-x64, \$(T_A)))\nPROD_IOC_WIN32 = LabJackApp\nendif", "LabJackApp/src/Makefile");
 	do_substitution ( "\QLIBRARY_IOC_WIN32 += LabJack\E", "ifeq (windows-x64, \$(findstring windows-x64, \$(T_A)))\nLIBRARY_IOC_WIN32 \+= LabJack\nendif", "LabJackApp/src/Makefile");
 
-	chdir "..";
+	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
 if (exists($modules{MEASCOMP}))
 {
-	chdir "measComp-$modules{MEASCOMP}";
+	chdir "measComp-$modules{MEASCOMP}" or die "ERROR: Cannot enter directory measComp-$modules{MEASCOMP}: $!\n";
 	
 	
 	if ($^O eq "linux")
@@ -647,16 +656,20 @@ if (exists($modules{MEASCOMP}))
 		my $ULDAQ = $modules{ULDAQ};
 		
 		rmtree("libuldaq-${ULDAQ}");
-		`curl -LO https://github.com/mccdaq/uldaq/releases/download/v${ULDAQ}/libuldaq-${ULDAQ}.tar.bz2`;
-		`tar -xvjf libuldaq-${ULDAQ}.tar.bz2`;
+		system("curl", "-LO", "https://github.com/mccdaq/uldaq/releases/download/v${ULDAQ}/libuldaq-${ULDAQ}.tar.bz2");
+		die "ERROR: Failed to download libuldaq-${ULDAQ}.tar.bz2\n" if $? != 0;
+		system("tar", "-xvjf", "libuldaq-${ULDAQ}.tar.bz2");
+		die "ERROR: Failed to extract libuldaq-${ULDAQ}.tar.bz2\n" if $? != 0;
 		unlink("libuldaq-${ULDAQ}.tar.bz2");
 	
-		chdir "libuldaq-${ULDAQ}";
+		chdir "libuldaq-${ULDAQ}" or die "ERROR: Cannot enter directory libuldaq-${ULDAQ}: $!\n";
 		
 		my $PWD = getcwd();
 		
-		system("./configure --prefix=${PWD}");
+		system("./configure", "--prefix=${PWD}");
+		warn "WARNING: uldaq configure failed\n" if $? != 0;
 		system("make");
+		warn "WARNING: uldaq make failed\n" if $? != 0;
 		`make install || true`;
 		
 		unlink("../configure/CONFIG_SITE.local");
@@ -665,7 +678,7 @@ if (exists($modules{MEASCOMP}))
 
 		say $RELEASE  "ULDAQ=${PWD}";
 
-		chdir "..";
+		chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 	}
 	
 	if ($HAVE_HIDAPI eq "NO")
@@ -676,55 +689,57 @@ if (exists($modules{MEASCOMP}))
 		}
 	}
 	
-	chdir "..";
+	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
 if (exists($modules{MCA}))
 {
-	chdir "mca-$modules{MCA}";
+	chdir "mca-$modules{MCA}" or die "ERROR: Cannot enter directory mca-$modules{MCA}: $!\n";
 	add_line("SCALER=", "./configure/RELEASE");
 	
 	unlink("configure/CONFIG_SITE.linux-x86.linux-arm");
 	unlink("configure/CONFIG_SITE.linux-x86_64.linux-arm");
 	add_line("LINUX_LIBUSB-1.0_INSTALLED = NO", "./configure/CONFIG_SITE.linux-x86_64.linux-arm");
 	add_line("LINUX_LIBUSB-1.0_INSTALLED = NO", "./configure/CONFIG_SITE.linux-x86.linux-arm");
-	chdir "..";
+	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
 if (exists($modules{MOTOR}))
 {
-	chdir "motor-$modules{MOTOR}";
-	`git submodule init`;
-	`git submodule update`;
+	chdir "motor-$modules{MOTOR}" or die "ERROR: Cannot enter directory motor-$modules{MOTOR}: $!\n";
+	system("git", "submodule", "init");
+	warn "WARNING: git submodule init failed for motor\n" if $? != 0;
+	system("git", "submodule", "update");
+	warn "WARNING: git submodule update failed for motor\n" if $? != 0;
 	
 	if (exists($modules{LUA}))
 	{
 		do_substitution("#!LUA=", "LUA=", "configure/RELEASE");
 	}
 	
-	chdir "..";
+	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
 if (exists($modules{MCOREUTILS}))
 {
 	my $FILTER_TAG=$modules{MCOREUTILS};
 	$FILTER_TAG =~ s/\./-/g;
-	chdir "MCoreUtils-$FILTER_TAG";
+	chdir "MCoreUtils-$FILTER_TAG" or die "ERROR: Cannot enter directory MCoreUtils-$FILTER_TAG: $!\n";
 	add_line("-include \$(MCOREUTILS)/configure/RELEASE", "./exampleTop/configure/RELEASE");
-	chdir "..";
+	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
 
 if (exists($modules{QUADEM}))
 {
-	chdir "quadEM-$modules{QUADEM}";
+	chdir "quadEM-$modules{QUADEM}" or die "ERROR: Cannot enter directory quadEM-$modules{QUADEM}: $!\n";
 
 	foreach my $file (glob("quadEMApp/op/ui/*.ui"))
 	{
 		unlink("$file");
 	}
 
-	chdir "..";
+	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
 if (exists($modules{STREAM}))
@@ -733,7 +748,7 @@ if (exists($modules{STREAM}))
 	
 	$FILTER_TAG =~ s/\./-/g;
 	
-	chdir "StreamDevice-${FILTER_TAG}";
+	chdir "StreamDevice-${FILTER_TAG}" or die "ERROR: Cannot enter directory StreamDevice-${FILTER_TAG}: $!\n";
 	
 	unlink("GNUmakefile");
 	
@@ -747,7 +762,7 @@ if (exists($modules{STREAM}))
 	add_line("SSCAN=", "./configure/RELEASE");
 	add_line("STREAM=", "./configure/RELEASE");
 	
-	chdir "..";
+	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
 if (exists($modules{XSPRESS3}))
@@ -756,21 +771,21 @@ if (exists($modules{XSPRESS3}))
 	
 	$FILTER_TAG =~ s/\./-/g;
 	
-	chdir "xspress3-${FILTER_TAG}";
+	chdir "xspress3-${FILTER_TAG}" or die "ERROR: Cannot enter directory xspress3-${FILTER_TAG}: $!\n";
 	
 	do_substitution("linux-x86_64", "x86_64", "xspress3App/src/Makefile");
 	do_substitution("linux-x86_64", "x86_64", "iocs/xspress3IOC/xspress3App/src/Makefile");
 	
-	chdir "..";
+	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
 if (exists($modules{YOKOGAWA_DAS}))
 {
-	chdir "Yokogawa_DAS-$modules{YOKOGAWA_DAS}";
+	chdir "Yokogawa_DAS-$modules{YOKOGAWA_DAS}" or die "ERROR: Cannot enter directory Yokogawa_DAS-$modules{YOKOGAWA_DAS}: $!\n";
 
 	do_substitution("CROSS_COMPILER_TARGET_ARCHS", "#CROSS_COMPILER_TARGET_ARCHS", "configure/CONFIG_SITE");
 
-	chdir "..";
+	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
 
@@ -803,4 +818,5 @@ say $RELEASE "-include \$(SUPPORT)/configure/RELEASE.\$(EPICS_HOST_ARCH).local";
 
 close($RELEASE);
 
-`make release`;
+system("make", "release");
+warn "WARNING: 'make release' failed -- module RELEASE files may be inconsistent\n" if $? != 0;

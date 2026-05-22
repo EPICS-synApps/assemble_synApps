@@ -27,6 +27,7 @@ my $HELP;
 my $CHECK;
 my $QUIET;
 my $VERBOSE;
+my $UPDATE;
 
 GetOptions ("config=s" => \$releasefile,
             "dir=s" => \$SYNAPPS_DIR,
@@ -35,7 +36,8 @@ GetOptions ("config=s" => \$releasefile,
             "help" => \$HELP,
 			"check" => \$CHECK,
 			"quiet" => \$QUIET,
-			"verbose" => \$VERBOSE) or die("error");
+			"verbose" => \$VERBOSE,
+			"update" => \$UPDATE) or die("error");
 
 if ($QUIET && $VERBOSE)
 {
@@ -43,6 +45,10 @@ if ($QUIET && $VERBOSE)
 }
 
 my @git_quiet = $VERBOSE ? () : ("-q");
+
+# Tracks which modules were cloned or restored (i.e., changed)
+# Modules skipped by --update will not appear in this hash
+my %updated = ();
 
 if ($HELP)
 {
@@ -52,6 +58,7 @@ if ($HELP)
 	print "\t--dir=<synapps dir name>\n";
 	print "\t--set <module>=<tag>\n";
 	print "\t--base=<EPICS BASE location>\n";
+	print "\t--update\n";
 	print "\t--quiet\n";
 	print "\t--verbose\n";
 	print "\t--help\n";
@@ -304,8 +311,41 @@ sub get_repo {
 		chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 		
 		say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
+		$updated{$RELEASE_NAME} = 1;
 		
 		info "\n";
+	}
+	elsif ($UPDATE)
+	{
+		# Check if already at the correct tag
+		chdir "$FOLDER_NAME" or die "ERROR: Cannot enter directory $FOLDER_NAME: $!\n";
+		my $current_tag = `git describe --tags --exact-match HEAD 2>/dev/null`;
+		chomp $current_tag if defined $current_tag;
+		chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
+		
+		if (defined $current_tag && $current_tag eq $TAG)
+		{
+			info "Skipping $MODULE_NAME (already at $TAG)\n";
+			say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
+		}
+		else
+		{
+			info "\n";
+			info "Updating $MODULE_NAME to tag: $TAG\n";
+			info "\n";
+			
+			chdir "$FOLDER_NAME" or die "ERROR: Cannot enter directory $FOLDER_NAME: $!\n";
+			run_cmd("git", "stash", @git_quiet);
+			run_cmd("git", "clean", "-fdx");
+			run_cmd("git", "checkout", @git_quiet, "$TAG");
+			die "ERROR: Failed to checkout tag $TAG for $MODULE_NAME\n" if $? != 0;
+			chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
+			
+			say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
+			$updated{$RELEASE_NAME} = 1;
+			
+			info "\n";
+		}
 	}
 	else
 	{
@@ -321,6 +361,7 @@ sub get_repo {
 		chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 		
 		say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
+		$updated{$RELEASE_NAME} = 1;
 		
 		info "\n";
 	}
@@ -451,26 +492,36 @@ if (exists($modules{ALLENBRADLEY}))
 	
 	$FILTER_TAG =~ s/\./-/g;
 	
-	rmtree("allenBradley-${FILTER_TAG}");
-	say $RELEASE "ALLEN_BRADLEY=\$(SUPPORT)/allenBradley-${FILTER_TAG}";
-	
-	run_cmd("curl", "-LO", "https://epics.anl.gov/download/modules/allenBradley-${TAG}.tar.gz");
-	die "ERROR: Failed to download allenBradley-${TAG}.tar.gz\n" if $? != 0;
-	
-	run_cmd("tar", "zxf", "allenBradley-${TAG}.tar.gz");
-	die "ERROR: Failed to extract allenBradley-${TAG}.tar.gz\n" if $? != 0;
-	move("allenBradley-${TAG}", "allenBradley-${FILTER_TAG}");
-	unlink "allenBradley-${TAG}.tar.gz";
-	
-	chdir "allenBradley-$FILTER_TAG" or die "ERROR: Cannot enter directory allenBradley-$FILTER_TAG: $!\n";
-	add_line("-include \$(TOP)/../RELEASE.local", "./configure/RELEASE");
-	add_line("-include \$(TOP)/../RELEASE.\$(EPICS_HOST_ARCH).local", "./configure/RELEASE");
-	add_line("-include \$(TOP)/configure/RELEASE.local", "./configure/RELEASE");
-	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
+	if ($UPDATE && -d "allenBradley-${FILTER_TAG}")
+	{
+		info "Skipping allenBradley (already present)\n";
+		say $RELEASE "ALLEN_BRADLEY=\$(SUPPORT)/allenBradley-${FILTER_TAG}";
+	}
+	else
+	{
+		rmtree("allenBradley-${FILTER_TAG}");
+		say $RELEASE "ALLEN_BRADLEY=\$(SUPPORT)/allenBradley-${FILTER_TAG}";
+		
+		run_cmd("curl", "-LO", "https://epics.anl.gov/download/modules/allenBradley-${TAG}.tar.gz");
+		die "ERROR: Failed to download allenBradley-${TAG}.tar.gz\n" if $? != 0;
+		
+		run_cmd("tar", "zxf", "allenBradley-${TAG}.tar.gz");
+		die "ERROR: Failed to extract allenBradley-${TAG}.tar.gz\n" if $? != 0;
+		move("allenBradley-${TAG}", "allenBradley-${FILTER_TAG}");
+		unlink "allenBradley-${TAG}.tar.gz";
+		
+		chdir "allenBradley-$FILTER_TAG" or die "ERROR: Cannot enter directory allenBradley-$FILTER_TAG: $!\n";
+		add_line("-include \$(TOP)/../RELEASE.local", "./configure/RELEASE");
+		add_line("-include \$(TOP)/../RELEASE.\$(EPICS_HOST_ARCH).local", "./configure/RELEASE");
+		add_line("-include \$(TOP)/configure/RELEASE.local", "./configure/RELEASE");
+		chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
+		
+		$updated{ALLENBRADLEY} = 1;
+	}
 }
 
 
-if (exists($modules{AREA_DETECTOR}))
+if (exists($modules{AREA_DETECTOR}) && (!$UPDATE || $updated{AREA_DETECTOR}))
 {
 	#get_repo("areaDetector", "areaDetector", "AREA_DETECTOR", "$modules{AREA_DETECTOR}", $RELEASE);
 
@@ -535,7 +586,7 @@ if (exists($modules{AREA_DETECTOR}))
 	chdir "../../.." or die "ERROR: Cannot return to support directory from ADCore/iocBoot: $!\n";
 }
 
-if (exists($modules{ASYN}))
+if (exists($modules{ASYN}) && (!$UPDATE || $updated{ASYN}))
 {
 	chdir "asyn-$modules{ASYN}" or die "ERROR: Cannot enter directory asyn-$modules{ASYN}: $!\n";
 	
@@ -565,7 +616,7 @@ if (exists($modules{ASYN}))
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
-if (exists($modules{CALC}))
+if (exists($modules{CALC}) && (!$UPDATE || $updated{CALC}))
 {
 	if (exists($modules{SNCSEQ}))
 	{
@@ -577,7 +628,7 @@ if (exists($modules{CALC}))
 	}
 }
 
-if (exists($modules{DXP}))
+if (exists($modules{DXP}) && (!$UPDATE || $updated{DXP}))
 {
 	chdir "dxp-$modules{DXP}" or die "ERROR: Cannot enter directory dxp-$modules{DXP}: $!\n";
 	add_line("EPICS_BASE=", "./configure/RELEASE");
@@ -591,7 +642,7 @@ if (exists($modules{DXP}))
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
-if (exists($modules{DANTE}))
+if (exists($modules{DANTE}) && (!$UPDATE || $updated{DANTE}))
 {
 	chdir "Dante-$modules{DANTE}" or die "ERROR: Cannot enter directory Dante-$modules{DANTE}: $!\n";
 	
@@ -600,7 +651,7 @@ if (exists($modules{DANTE}))
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
-if (exists($modules{ETHERIP}))
+if (exists($modules{ETHERIP}) && (!$UPDATE || $updated{ETHERIP}))
 {
 	chdir "ether_ip-$modules{ETHERIP}" or die "ERROR: Cannot enter directory ether_ip-$modules{ETHERIP}: $!\n";
 	add_line("EPICS_BASE=", "./configure/RELEASE");
@@ -615,7 +666,7 @@ if (exists($modules{ETHERIP}))
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
-if (exists($modules{GALIL}))
+if (exists($modules{GALIL}) && (!$UPDATE || $updated{GALIL}))
 {
 	my $FILTER_TAG=$modules{GALIL};
 	
@@ -643,7 +694,7 @@ if (exists($modules{GALIL}))
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
-if (exists($modules{IPAC}))
+if (exists($modules{IPAC}) && (!$UPDATE || $updated{IPAC}))
 {
 	my $FILTER_TAG=$modules{IPAC};
 	
@@ -662,7 +713,7 @@ if (exists($modules{IPAC}))
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
-if (exists($modules{LABJACK}))
+if (exists($modules{LABJACK}) && (!$UPDATE || $updated{LABJACK}))
 {
 	chdir "LabJack-$modules{LABJACK}" or die "ERROR: Cannot enter directory LabJack-$modules{LABJACK}: $!\n";
 
@@ -672,7 +723,7 @@ if (exists($modules{LABJACK}))
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
-if (exists($modules{MEASCOMP}))
+if (exists($modules{MEASCOMP}) && (!$UPDATE || $updated{MEASCOMP}))
 {
 	chdir "measComp-$modules{MEASCOMP}" or die "ERROR: Cannot enter directory measComp-$modules{MEASCOMP}: $!\n";
 	
@@ -681,30 +732,42 @@ if (exists($modules{MEASCOMP}))
 	{
 		my $ULDAQ = $modules{ULDAQ};
 		
-		rmtree("libuldaq-${ULDAQ}");
-		run_cmd("curl", "-LO", "https://github.com/mccdaq/uldaq/releases/download/v${ULDAQ}/libuldaq-${ULDAQ}.tar.bz2");
-		die "ERROR: Failed to download libuldaq-${ULDAQ}.tar.bz2\n" if $? != 0;
-		run_cmd("tar", "-xvjf", "libuldaq-${ULDAQ}.tar.bz2");
-		die "ERROR: Failed to extract libuldaq-${ULDAQ}.tar.bz2\n" if $? != 0;
-		unlink("libuldaq-${ULDAQ}.tar.bz2");
-	
-		chdir "libuldaq-${ULDAQ}" or die "ERROR: Cannot enter directory libuldaq-${ULDAQ}: $!\n";
+		if ($UPDATE && -d "libuldaq-${ULDAQ}" && -d "libuldaq-${ULDAQ}/lib")
+		{
+			info "Skipping uldaq build (already present)\n";
+			
+			chdir "libuldaq-${ULDAQ}" or die "ERROR: Cannot enter directory libuldaq-${ULDAQ}: $!\n";
+			my $PWD = getcwd();
+			say $RELEASE  "ULDAQ=${PWD}";
+			chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
+		}
+		else
+		{
+			rmtree("libuldaq-${ULDAQ}");
+			run_cmd("curl", "-LO", "https://github.com/mccdaq/uldaq/releases/download/v${ULDAQ}/libuldaq-${ULDAQ}.tar.bz2");
+			die "ERROR: Failed to download libuldaq-${ULDAQ}.tar.bz2\n" if $? != 0;
+			run_cmd("tar", "-xvjf", "libuldaq-${ULDAQ}.tar.bz2");
+			die "ERROR: Failed to extract libuldaq-${ULDAQ}.tar.bz2\n" if $? != 0;
+			unlink("libuldaq-${ULDAQ}.tar.bz2");
 		
-		my $PWD = getcwd();
-		
-		run_cmd("./configure", "--prefix=${PWD}");
-		warn "WARNING: uldaq configure failed\n" if $? != 0;
-		run_cmd("make");
-		warn "WARNING: uldaq make failed\n" if $? != 0;
-		`make install || true`;
-		
-		unlink("../configure/CONFIG_SITE.local");
-		add_line("USR_LDFLAGS+=-L${PWD}/lib", "../configure/CONFIG_SITE.local");
-		add_line("USR_CPPFLAGS+=-I${PWD}/include", "../configure/CONFIG_SITE.local");
+			chdir "libuldaq-${ULDAQ}" or die "ERROR: Cannot enter directory libuldaq-${ULDAQ}: $!\n";
+			
+			my $PWD = getcwd();
+			
+			run_cmd("./configure", "--prefix=${PWD}");
+			warn "WARNING: uldaq configure failed\n" if $? != 0;
+			run_cmd("make");
+			warn "WARNING: uldaq make failed\n" if $? != 0;
+			`make install || true`;
+			
+			unlink("../configure/CONFIG_SITE.local");
+			add_line("USR_LDFLAGS+=-L${PWD}/lib", "../configure/CONFIG_SITE.local");
+			add_line("USR_CPPFLAGS+=-I${PWD}/include", "../configure/CONFIG_SITE.local");
 
-		say $RELEASE  "ULDAQ=${PWD}";
+			say $RELEASE  "ULDAQ=${PWD}";
 
-		chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
+			chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
+		}
 	}
 	
 	if ($HAVE_HIDAPI eq "NO")
@@ -718,7 +781,7 @@ if (exists($modules{MEASCOMP}))
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
-if (exists($modules{MCA}))
+if (exists($modules{MCA}) && (!$UPDATE || $updated{MCA}))
 {
 	chdir "mca-$modules{MCA}" or die "ERROR: Cannot enter directory mca-$modules{MCA}: $!\n";
 	add_line("SCALER=", "./configure/RELEASE");
@@ -730,7 +793,7 @@ if (exists($modules{MCA}))
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
-if (exists($modules{MOTOR}))
+if (exists($modules{MOTOR}) && (!$UPDATE || $updated{MOTOR}))
 {
 	chdir "motor-$modules{MOTOR}" or die "ERROR: Cannot enter directory motor-$modules{MOTOR}: $!\n";
 	run_cmd("git", "submodule", "init");
@@ -746,7 +809,7 @@ if (exists($modules{MOTOR}))
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
-if (exists($modules{MCOREUTILS}))
+if (exists($modules{MCOREUTILS}) && (!$UPDATE || $updated{MCOREUTILS}))
 {
 	my $FILTER_TAG=$modules{MCOREUTILS};
 	$FILTER_TAG =~ s/\./-/g;
@@ -756,7 +819,7 @@ if (exists($modules{MCOREUTILS}))
 }
 
 
-if (exists($modules{QUADEM}))
+if (exists($modules{QUADEM}) && (!$UPDATE || $updated{QUADEM}))
 {
 	chdir "quadEM-$modules{QUADEM}" or die "ERROR: Cannot enter directory quadEM-$modules{QUADEM}: $!\n";
 
@@ -768,7 +831,7 @@ if (exists($modules{QUADEM}))
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
-if (exists($modules{STREAM}))
+if (exists($modules{STREAM}) && (!$UPDATE || $updated{STREAM}))
 {
 	my $FILTER_TAG=$modules{STREAM};
 	
@@ -791,7 +854,7 @@ if (exists($modules{STREAM}))
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
-if (exists($modules{XSPRESS3}))
+if (exists($modules{XSPRESS3}) && (!$UPDATE || $updated{XSPRESS3}))
 {
 	my $FILTER_TAG=$modules{XSPRESS3};
 	
@@ -805,7 +868,7 @@ if (exists($modules{XSPRESS3}))
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
-if (exists($modules{YOKOGAWA_DAS}))
+if (exists($modules{YOKOGAWA_DAS}) && (!$UPDATE || $updated{YOKOGAWA_DAS}))
 {
 	chdir "Yokogawa_DAS-$modules{YOKOGAWA_DAS}" or die "ERROR: Cannot enter directory Yokogawa_DAS-$modules{YOKOGAWA_DAS}: $!\n";
 

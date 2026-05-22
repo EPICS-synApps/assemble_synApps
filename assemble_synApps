@@ -7,6 +7,7 @@ use Fcntl;
 use File::Copy;
 use File::Copy "move";
 use File::Path "rmtree";
+use File::Spec;
 use Getopt::Long;
 
 my $releasefile="default";
@@ -24,13 +25,24 @@ my $SYNAPPS_DIR='git';
 
 my $HELP;
 my $CHECK;
+my $QUIET;
+my $VERBOSE;
 
 GetOptions ("config=s" => \$releasefile,
             "dir=s" => \$SYNAPPS_DIR,
             "base=s" => \$EPICS_BASE,
 			"set=s" => \%setmodule,
             "help" => \$HELP,
-			"check" => \$CHECK) or die("error");
+			"check" => \$CHECK,
+			"quiet" => \$QUIET,
+			"verbose" => \$VERBOSE) or die("error");
+
+if ($QUIET && $VERBOSE)
+{
+	die "ERROR: --quiet and --verbose are mutually exclusive\n";
+}
+
+my @git_quiet = $VERBOSE ? () : ("-q");
 
 if ($HELP)
 {
@@ -40,6 +52,8 @@ if ($HELP)
 	print "\t--dir=<synapps dir name>\n";
 	print "\t--set <module>=<tag>\n";
 	print "\t--base=<EPICS BASE location>\n";
+	print "\t--quiet\n";
+	print "\t--verbose\n";
 	print "\t--help\n";
 	print "\t--check\n";
 	
@@ -180,6 +194,28 @@ if (! -f "$EPICS_BASE/include/epicsVersion.h")
 
 
 
+# Print a progress message unless --quiet is set
+sub info {
+	print @_ unless $QUIET;
+}
+
+# Run a system command, suppressing stdout in quiet mode
+sub run_cmd {
+	my @cmd = @_;
+	
+	if ($QUIET)
+	{
+		open(my $save_stdout, ">&", \*STDOUT);
+		open(STDOUT, ">", File::Spec->devnull());
+		my $ret = system(@cmd);
+		open(STDOUT, ">&", $save_stdout);
+		return $ret;
+	}
+	
+	return system(@cmd);
+}
+
+
 # Validates that a module name or tag contains only safe characters.
 # Prevents shell injection when values are interpolated into commands.
 sub validate_tag {
@@ -255,38 +291,38 @@ sub get_repo {
 	
 	if (! -d "${FOLDER_NAME}")
 	{
-		print "\n";
-		print "Grabbing $MODULE_NAME at tag: $TAG\n";
-		print "\n";
+		info "\n";
+		info "Grabbing $MODULE_NAME at tag: $TAG\n";
+		info "\n";
 		
-		system("git", "clone", "-q", "https://github.com/$PROJECT/${MODULE_NAME}.git", "${FOLDER_NAME}");
+		run_cmd("git", "clone", @git_quiet, "https://github.com/$PROJECT/${MODULE_NAME}.git", "${FOLDER_NAME}");
 		die "ERROR: Failed to clone $MODULE_NAME from $PROJECT\n" if $? != 0;
 		
 		chdir "$FOLDER_NAME" or die "ERROR: Cannot enter directory $FOLDER_NAME: $!\n";
-		system("git", "checkout", "-q", "$TAG");
+		run_cmd("git", "checkout", @git_quiet, "$TAG");
 		die "ERROR: Failed to checkout tag $TAG for $MODULE_NAME\n" if $? != 0;
 		chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 		
 		say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
 		
-		print "\n";
+		info "\n";
 	}
 	else
 	{
-		print "\n";
-		print "Restoring $MODULE_NAME to tag: $TAG\n";
-		print "\n";
+		info "\n";
+		info "Restoring $MODULE_NAME to tag: $TAG\n";
+		info "\n";
 		
 		chdir "$FOLDER_NAME" or die "ERROR: Cannot enter directory $FOLDER_NAME: $!\n";
-		system("git", "stash", "-q");
-		system("git", "clean", "-fdx");
-		system("git", "checkout", "-q", "$TAG");
+		run_cmd("git", "stash", @git_quiet);
+		run_cmd("git", "clean", "-fdx");
+		run_cmd("git", "checkout", @git_quiet, "$TAG");
 		die "ERROR: Failed to checkout tag $TAG for $MODULE_NAME\n" if $? != 0;
 		chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 		
 		say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
 		
-		print "\n";
+		info "\n";
 	}
 }
 
@@ -366,10 +402,10 @@ chdir "${SYNAPPS_DIR}" or die "ERROR: Cannot enter directory ${SYNAPPS_DIR}: $!\
 
 if (! -d "support")
 {
-	system("git", "clone", "-q", "https://github.com/EPICS-synApps/support.git");
+	run_cmd("git", "clone", @git_quiet, "https://github.com/EPICS-synApps/support.git");
 	die "ERROR: Failed to clone support repository\n" if $? != 0;
 	chdir "support" or die "ERROR: Cannot enter directory support: $!\n";
-	system("git", "checkout", "-q", "$SUPPORT");
+	run_cmd("git", "checkout", @git_quiet, "$SUPPORT");
 	die "ERROR: Failed to checkout support tag $SUPPORT\n" if $? != 0;
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
@@ -418,10 +454,10 @@ if (exists($modules{ALLENBRADLEY}))
 	rmtree("allenBradley-${FILTER_TAG}");
 	say $RELEASE "ALLEN_BRADLEY=\$(SUPPORT)/allenBradley-${FILTER_TAG}";
 	
-	system("curl", "-LO", "https://epics.anl.gov/download/modules/allenBradley-${TAG}.tar.gz");
+	run_cmd("curl", "-LO", "https://epics.anl.gov/download/modules/allenBradley-${TAG}.tar.gz");
 	die "ERROR: Failed to download allenBradley-${TAG}.tar.gz\n" if $? != 0;
 	
-	system("tar", "zxf", "allenBradley-${TAG}.tar.gz");
+	run_cmd("tar", "zxf", "allenBradley-${TAG}.tar.gz");
 	die "ERROR: Failed to extract allenBradley-${TAG}.tar.gz\n" if $? != 0;
 	move("allenBradley-${TAG}", "allenBradley-${FILTER_TAG}");
 	unlink "allenBradley-${TAG}.tar.gz";
@@ -469,7 +505,7 @@ if (exists($modules{AREA_DETECTOR}))
 	say $RELEASE "ADCORE=\$(AREA_DETECTOR)/ADCore";
 	say $RELEASE "ADSUPPORT=\$(AREA_DETECTOR)/ADSupport";
 	
-	system("git", "submodule", "init");
+	run_cmd("git", "submodule", "init");
 	warn "WARNING: git submodule init failed for areaDetector\n" if $? != 0;
 	
 	my @submods = ("ADCore", "ADSupport", "ADSimDetector");
@@ -479,7 +515,7 @@ if (exists($modules{AREA_DETECTOR}))
 	{
 		my $uppername = uc $modname;
 		
-		system("git", "submodule", "update", "${modname}");
+		run_cmd("git", "submodule", "update", "${modname}");
 		warn "WARNING: git submodule update failed for $modname\n" if $? != 0;
 		do_substitution("#${uppername}=", "${uppername}=", "configure/RELEASE.local");
 	}
@@ -646,9 +682,9 @@ if (exists($modules{MEASCOMP}))
 		my $ULDAQ = $modules{ULDAQ};
 		
 		rmtree("libuldaq-${ULDAQ}");
-		system("curl", "-LO", "https://github.com/mccdaq/uldaq/releases/download/v${ULDAQ}/libuldaq-${ULDAQ}.tar.bz2");
+		run_cmd("curl", "-LO", "https://github.com/mccdaq/uldaq/releases/download/v${ULDAQ}/libuldaq-${ULDAQ}.tar.bz2");
 		die "ERROR: Failed to download libuldaq-${ULDAQ}.tar.bz2\n" if $? != 0;
-		system("tar", "-xvjf", "libuldaq-${ULDAQ}.tar.bz2");
+		run_cmd("tar", "-xvjf", "libuldaq-${ULDAQ}.tar.bz2");
 		die "ERROR: Failed to extract libuldaq-${ULDAQ}.tar.bz2\n" if $? != 0;
 		unlink("libuldaq-${ULDAQ}.tar.bz2");
 	
@@ -656,9 +692,9 @@ if (exists($modules{MEASCOMP}))
 		
 		my $PWD = getcwd();
 		
-		system("./configure", "--prefix=${PWD}");
+		run_cmd("./configure", "--prefix=${PWD}");
 		warn "WARNING: uldaq configure failed\n" if $? != 0;
-		system("make");
+		run_cmd("make");
 		warn "WARNING: uldaq make failed\n" if $? != 0;
 		`make install || true`;
 		
@@ -697,9 +733,9 @@ if (exists($modules{MCA}))
 if (exists($modules{MOTOR}))
 {
 	chdir "motor-$modules{MOTOR}" or die "ERROR: Cannot enter directory motor-$modules{MOTOR}: $!\n";
-	system("git", "submodule", "init");
+	run_cmd("git", "submodule", "init");
 	warn "WARNING: git submodule init failed for motor\n" if $? != 0;
-	system("git", "submodule", "update");
+	run_cmd("git", "submodule", "update");
 	warn "WARNING: git submodule update failed for motor\n" if $? != 0;
 	
 	if (exists($modules{LUA}))
@@ -808,5 +844,5 @@ say $RELEASE "-include \$(SUPPORT)/configure/RELEASE.\$(EPICS_HOST_ARCH).local";
 
 close($RELEASE);
 
-system("make", "release");
+run_cmd("make", "release");
 warn "WARNING: 'make release' failed -- module RELEASE files may be inconsistent\n" if $? != 0;

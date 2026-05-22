@@ -510,16 +510,6 @@ if (exists($modules{ASYN}))
 	
 	my $tirpc = "NO";
 	
-	if (-e "/etc/redhat-release")
-	{
-		my $version = `cat /etc/redhat-release`;
-		
-		if (grep(/release 8/, $version))
-		{
-			$tirpc = "YES";
-		}
-	}
-	
 	if (-e "/usr/include/tirpc/rpc/rpc.h")
 	{
 		$tirpc = "YES";

@@ -509,7 +509,7 @@ if (exists($modules{AREA_DETECTOR}))
 	warn "WARNING: git submodule init failed for areaDetector\n" if $? != 0;
 	
 	my @submods = ("ADCore", "ADSupport", "ADSimDetector");
-	push @submods, split(/ /, $modules{AREA_DETECTOR_SUBMODULES});
+	push @submods, grep { $_ ne '' } split(/\s+/, $modules{AREA_DETECTOR_SUBMODULES});
 	
 	foreach my $modname (@submods)
 	{

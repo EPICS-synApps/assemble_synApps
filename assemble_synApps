@@ -66,7 +66,7 @@ if ($releasefile eq "default")
 	$modules{'DXPSITORO'} = 'R1-3';
 	$modules{'DEVIOCSTATS'} = '3.1.16';
 	$modules{'ETHERIP'} = 'ether_ip-3-3';
-	$modules{'GALIL'} = 'V3-5';
+	$modules{'GALIL'} = 'R3-6-85';
 	$modules{'IP'} = 'R2-22';
 	$modules{'IPAC'} = '2.16';
 	$modules{'IP330'} = 'R2-10';
@@ -202,11 +202,6 @@ sub get_repo {
 		
 		chdir "$FOLDER_NAME";
 		`git checkout -q $TAG`;
-		chdir "..";
-		
-		say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
-		
-		print "\n";
 	}
 	else
 	{
@@ -218,12 +213,11 @@ sub get_repo {
 		`git stash -q`;
 		`git clean -fdx`;
 		`git checkout -q $TAG`;
-		chdir "..";
-		
-		say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
-		
-		print "\n";
 	}
+	system("mkdir -p configure; echo 'EPICS_BASE=$EPICS_BASE' >> configure/RELEASE.local");
+	chdir "..";
+	say $REL "$RELEASE_NAME=\$(SUPPORT)/$FOLDER_NAME";
+	print "\n";
 }
 
 
@@ -262,7 +256,7 @@ $module_info{DXP}           = {group => "epics-modules",         repo => "dxp"};
 $module_info{DXPSITORO}     = {group => "epics-modules",         repo => "dxpSITORO"};
 $module_info{DEVIOCSTATS}   = {group => "epics-modules",         repo => "iocStats"};
 $module_info{ETHERIP}       = {group => "epics-modules",         repo => "ether_ip"};
-$module_info{GALIL}         = {group => "motorapp",              repo => "Galil-3-0"};
+$module_info{GALIL}         = {group => "motorapp",              repo => "Galil"};
 $module_info{IP}            = {group => "epics-modules",         repo => "ip"};
 $module_info{IPAC}          = {group => "epics-modules",         repo => "ipac"};
 $module_info{IP330}         = {group => "epics-modules",         repo => "ip330"};
@@ -520,24 +514,10 @@ if (exists($modules{GALIL}))
 	
 	$FILTER_TAG =~ s/V//g;
 	
-	chdir "Galil-3-0-$modules{GALIL}";
-	
-	copy_recur("${FILTER_TAG}/.", "./");
-	rmtree("${FILTER_TAG}");
+	chdir "Galil-$modules{GALIL}";
 	
 	copy("./config/GALILRELEASE", "./configure/RELEASE.local");
 
-	add_line('-include $(TOP)/../RELEASE.local', "./configure/RELEASE");
-	add_line('-include $(TOP)/../RELEASE.$(EPICS_HOST_ARCH).local', "./configure/RELEASE");
-	add_line('-include $(TOP)/configure/RELEASE.local', "./configure/RELEASE");
-	
-	do_substitution("\QLIBRARY_IOC += GalilSupport\E", "LIBRARY_IOC_Linux \+= GalilSupport\nLIBRARY_IOC_WIN32 += GalilSupport", "GalilSup/src/Makefile");
-	do_substitution("PROD_IOC = GalilTest", "PROD_IOC_Linux = GalilTest\nPROD_IOC_WIN32 = GalilTest", "GalilTestApp/src/Makefile");
-	
-	if (exists($modules{SNCSEQ}))
-	{
-		do_substitution("asyn motor calc sscan autosave busy", "asyn motor calc sscan autosave busy seq pv", "GalilTestApp/src/Makefile");
-	}
 	
 	chdir "..";
 }
@@ -591,7 +571,7 @@ if (exists($modules{MEASCOMP}))
 		
 		system("./configure --prefix=${PWD}");
 		system("make");
-		`make install || true`;
+		`sudo make install || true`;
 		
 		unlink("../configure/CONFIG_SITE.local");
 		add_line("USR_LDFLAGS+=-L${PWD}/lib", "../configure/CONFIG_SITE.local");
@@ -733,8 +713,9 @@ say $RELEASE "-include \$(SUPPORT)/RELEASE.local";
 say $RELEASE "-include \$(SUPPORT)/RELEASE.\$(EPICS_HOST_ARCH).local";
 say $RELEASE "-include \$(SUPPORT)/configure/RELEASE.local";
 say $RELEASE "-include \$(SUPPORT)/configure/RELEASE.\$(EPICS_HOST_ARCH).local";
-
-
 close($RELEASE);
 
-`make release`;
+# Make RELEASE files for support modules consistent
+system("make release"); # system() forwards output and errors of the command
+# Start the build
+system("make");

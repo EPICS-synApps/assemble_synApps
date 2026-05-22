@@ -754,34 +754,6 @@ if (exists($modules{ASYN}) && (!$UPDATE || $updated{ASYN}))
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
-if (exists($modules{GALIL}) && (!$UPDATE || $updated{GALIL}))
-{
-	my $FILTER_TAG=$modules{GALIL};
-	
-	$FILTER_TAG =~ s/V//g;
-	
-	chdir "Galil-3-0-$modules{GALIL}" or die "ERROR: Cannot enter directory Galil-3-0-$modules{GALIL}: $!\n";
-	
-	copy_recur("${FILTER_TAG}/.", "./");
-	rmtree("${FILTER_TAG}");
-	
-	copy("./config/GALILRELEASE", "./configure/RELEASE.local");
-
-	add_line('-include $(TOP)/../RELEASE.local', "./configure/RELEASE");
-	add_line('-include $(TOP)/../RELEASE.$(EPICS_HOST_ARCH).local', "./configure/RELEASE");
-	add_line('-include $(TOP)/configure/RELEASE.local', "./configure/RELEASE");
-	
-	do_substitution("\QLIBRARY_IOC += GalilSupport\E", "LIBRARY_IOC_Linux \+= GalilSupport\nLIBRARY_IOC_WIN32 += GalilSupport", "GalilSup/src/Makefile");
-	do_substitution("PROD_IOC = GalilTest", "PROD_IOC_Linux = GalilTest\nPROD_IOC_WIN32 = GalilTest", "GalilTestApp/src/Makefile");
-	
-	if (exists($modules{SNCSEQ}))
-	{
-		do_substitution("asyn motor calc sscan autosave busy", "asyn motor calc sscan autosave busy seq pv", "GalilTestApp/src/Makefile");
-	}
-	
-	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
-}
-
 if (exists($modules{MEASCOMP}) && (!$UPDATE || $updated{MEASCOMP}))
 {
 	chdir "measComp-$modules{MEASCOMP}" or die "ERROR: Cannot enter directory measComp-$modules{MEASCOMP}: $!\n";

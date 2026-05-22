@@ -383,6 +383,62 @@ sub add_line {
 
 
 
+# Compute the directory name for a module from %module_info and %modules
+# Follows the same convention as get_repo: repo-FILTER_TAG (dots replaced with dashes)
+sub module_dir {
+	my ($key) = @_;
+	my $tag = $modules{$key};
+	$tag =~ s/\./-/g;
+	return "$module_info{$key}{repo}-$tag";
+}
+
+
+# Apply a list of patch operations to a module directory.
+# Handles the exists/update guard, chdir in/out, and dispatches operations.
+# Each patch is a hashref with an 'op' key and operation-specific fields.
+# Optional 'cond' key is a code ref; patch is skipped if it returns false.
+#
+# Supported operations:
+#   substitute      - {search, replace, file}
+#   substitute_glob - {search, replace, pattern}
+#   add_line        - {line, file}
+#   write_file      - {file, lines => [...]}
+#   copy            - {src, dst}
+#   unlink          - {file}
+#   unlink_glob     - {pattern}
+sub apply_patches {
+	my ($key, $patches_ref) = @_;
+	
+	return unless exists($modules{$key});
+	return if $UPDATE && !$updated{$key};
+	
+	my $dir = module_dir($key);
+	
+	chdir $dir or die "ERROR: Cannot enter directory $dir: $!\n";
+	
+	foreach my $patch (@{$patches_ref})
+	{
+		if (exists($patch->{cond}))
+		{
+			next unless $patch->{cond}->();
+		}
+		
+		my $op = $patch->{op};
+		
+		if    ($op eq "substitute")      { do_substitution($patch->{search}, $patch->{replace}, $patch->{file}); }
+		elsif ($op eq "substitute_glob") { foreach my $f (glob($patch->{pattern})) { do_substitution($patch->{search}, $patch->{replace}, $f); } }
+		elsif ($op eq "add_line")        { add_line($patch->{line}, $patch->{file}); }
+		elsif ($op eq "write_file")      { unlink($patch->{file}); foreach my $l (@{$patch->{lines}}) { add_line($l, $patch->{file}); } }
+		elsif ($op eq "copy")            { copy($patch->{src}, $patch->{dst}); }
+		elsif ($op eq "unlink")          { unlink($patch->{file}); }
+		elsif ($op eq "unlink_glob")     { foreach my $f (glob($patch->{pattern})) { unlink($f); } }
+		else                             { warn "WARNING: Unknown patch operation '$op' for $key\n"; }
+	}
+	
+	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
+}
+
+
 #################################
 # Module Repository Information #
 #################################
@@ -432,6 +488,88 @@ $module_info{YOKOGAWA_DAS}  = {group => "epics-modules",         repo => "Yokoga
 $module_info{XXX}           = {group => "epics-modules",         repo => "xxx"};
 
 
+################################
+# Module Patch Definitions     #
+################################
+
+my %module_patches = ();
+
+$module_patches{CALC} = [
+	{op => "substitute", search => "#SNCSEQ", replace => "SNCSEQ", file => "configure/RELEASE",
+	 cond => sub { exists($modules{SNCSEQ}) }},
+];
+
+$module_patches{DXP} = [
+	{op => "add_line",   line => "EPICS_BASE=", file => "./configure/RELEASE"},
+	{op => "write_file", file => "configure/CONFIG_SITE.linux-x86.linux-arm",
+	                     lines => ["LINUX_USB_INSTALLED = NO"]},
+	{op => "write_file", file => "configure/CONFIG_SITE.linux-x86_64.linux-arm",
+	                     lines => ["LINUX_USB_INSTALLED = NO"]},
+];
+
+$module_patches{DANTE} = [
+	{op => "substitute", search => "linux-x86_64", replace => "x86_64", file => "danteApp/danteSrc/Makefile"},
+];
+
+$module_patches{ETHERIP} = [
+	{op => "add_line",   line => "EPICS_BASE=", file => "./configure/RELEASE"},
+	{op => "substitute", search => '\QDIRS += testether_ipApp\E',           replace => '#DIRS \+= testether_ipApp',           file => "Makefile"},
+	{op => "substitute", search => '\QUSR_CFLAGS += -Wno-unused-value\E',   replace => 'USR_CFLAGS_Darwin \+= -Wno-unused-value', file => "ether_ipApp/src/Makefile"},
+	{op => "substitute", search => "SYS_DLL_LIBS",                          replace => "USR_SYS_LIBS_WIN32",                  file => "ether_ipApp/src/Makefile"},
+	{op => "substitute", search => "EPICS_UPDATE_LEVEL",                     replace => "EPICS_PATCH_LEVEL",                   file => "ether_ipApp/src/ether_ip.rc"},
+];
+
+$module_patches{IPAC} = [
+	{op => "add_line",   line => '-include $(TOP)/../RELEASE.local',                    file => "./configure/RELEASE"},
+	{op => "add_line",   line => '-include $(TOP)/../RELEASE.$(EPICS_HOST_ARCH).local', file => "./configure/RELEASE"},
+	{op => "add_line",   line => '-include $(TOP)/configure/RELEASE.local',             file => "./configure/RELEASE"},
+	{op => "substitute", search => '#registrar\(vipc', replace => "registrar(vipc", file => "drvIpac/drvIpac.dbd"},
+	{op => "substitute", search => '#registrar\(tvme', replace => "registrar(tvme", file => "drvIpac/drvIpac.dbd"},
+	{op => "substitute", search => '#registrar\(xy96', replace => "registrar(xy96", file => "drvIpac/drvIpac.dbd"},
+];
+
+$module_patches{LABJACK} = [
+	{op => "substitute", search => "PROD_IOC_WIN32 = LabJackApp",
+	                     replace => "ifeq (windows-x64, \$(findstring windows-x64, \$(T_A)))\nPROD_IOC_WIN32 = LabJackApp\nendif",
+	                     file => "LabJackApp/src/Makefile"},
+	{op => "substitute", search => '\QLIBRARY_IOC_WIN32 += LabJack\E',
+	                     replace => "ifeq (windows-x64, \$(findstring windows-x64, \$(T_A)))\nLIBRARY_IOC_WIN32 \+= LabJack\nendif",
+	                     file => "LabJackApp/src/Makefile"},
+];
+
+$module_patches{MCA} = [
+	{op => "add_line",   line => "SCALER=", file => "./configure/RELEASE"},
+	{op => "write_file", file => "configure/CONFIG_SITE.linux-x86_64.linux-arm",
+	                     lines => ["LINUX_LIBUSB-1.0_INSTALLED = NO"]},
+	{op => "write_file", file => "configure/CONFIG_SITE.linux-x86.linux-arm",
+	                     lines => ["LINUX_LIBUSB-1.0_INSTALLED = NO"]},
+];
+
+$module_patches{MCOREUTILS} = [
+	{op => "add_line", line => '-include $(MCOREUTILS)/configure/RELEASE', file => "./exampleTop/configure/RELEASE"},
+];
+
+$module_patches{QUADEM} = [
+	{op => "unlink_glob", pattern => "quadEMApp/op/ui/*.ui"},
+];
+
+$module_patches{STREAM} = [
+	{op => "unlink",     file => "GNUmakefile"},
+	{op => "substitute", search => "PCRE=", replace => "#PCRE=", file => "configure/RELEASE"},
+	{op => "add_line",   line => "SNCSEQ=", file => "./configure/RELEASE",
+	 cond => sub { exists($modules{SNCSEQ}) }},
+	{op => "add_line",   line => "SSCAN=",  file => "./configure/RELEASE"},
+	{op => "add_line",   line => "STREAM=", file => "./configure/RELEASE"},
+];
+
+$module_patches{XSPRESS3} = [
+	{op => "substitute", search => "linux-x86_64", replace => "x86_64", file => "xspress3App/src/Makefile"},
+	{op => "substitute", search => "linux-x86_64", replace => "x86_64", file => "iocs/xspress3IOC/xspress3App/src/Makefile"},
+];
+
+$module_patches{YOKOGAWA_DAS} = [
+	{op => "substitute", search => "CROSS_COMPILER_TARGET_ARCHS", replace => "#CROSS_COMPILER_TARGET_ARCHS", file => "configure/CONFIG_SITE"},
+];
 
 
 ####################
@@ -616,56 +754,6 @@ if (exists($modules{ASYN}) && (!$UPDATE || $updated{ASYN}))
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
-if (exists($modules{CALC}) && (!$UPDATE || $updated{CALC}))
-{
-	if (exists($modules{SNCSEQ}))
-	{
-		chdir "calc-$modules{CALC}" or die "ERROR: Cannot enter directory calc-$modules{CALC}: $!\n";
-		
-		do_substitution("#SNCSEQ", "SNCSEQ", "configure/RELEASE");
-
-		chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
-	}
-}
-
-if (exists($modules{DXP}) && (!$UPDATE || $updated{DXP}))
-{
-	chdir "dxp-$modules{DXP}" or die "ERROR: Cannot enter directory dxp-$modules{DXP}: $!\n";
-	add_line("EPICS_BASE=", "./configure/RELEASE");
-	
-	unlink("configure/CONFIG_SITE.linux-x86.linux-arm");
-	add_line("LINUX_USB_INSTALLED = NO", "./configure/CONFIG_SITE.linux-x86.linux-arm");
-	
-	unlink("configure/CONFIG_SITE.linux-x86_64.linux-arm");
-	add_line("LINUX_USB_INSTALLED = NO", "./configure/CONFIG_SITE.linux-x86_64.linux-arm");
-	
-	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
-}
-
-if (exists($modules{DANTE}) && (!$UPDATE || $updated{DANTE}))
-{
-	chdir "Dante-$modules{DANTE}" or die "ERROR: Cannot enter directory Dante-$modules{DANTE}: $!\n";
-	
-	do_substitution("linux-x86_64", "x86_64", "danteApp/danteSrc/Makefile");
-	
-	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
-}
-
-if (exists($modules{ETHERIP}) && (!$UPDATE || $updated{ETHERIP}))
-{
-	chdir "ether_ip-$modules{ETHERIP}" or die "ERROR: Cannot enter directory ether_ip-$modules{ETHERIP}: $!\n";
-	add_line("EPICS_BASE=", "./configure/RELEASE");
-
-	do_substitution("\QDIRS += testether_ipApp\E", "#DIRS \+= testether_ipApp", "Makefile");
-	
-	do_substitution("\QUSR_CFLAGS += -Wno-unused-value\E", "USR_CFLAGS_Darwin \+= -Wno-unused-value", "ether_ipApp/src/Makefile");
-	do_substitution("SYS_DLL_LIBS", "USR_SYS_LIBS_WIN32", "ether_ipApp/src/Makefile");
-
-	do_substitution("EPICS_UPDATE_LEVEL", "EPICS_PATCH_LEVEL", "ether_ipApp/src/ether_ip.rc");
-
-	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
-}
-
 if (exists($modules{GALIL}) && (!$UPDATE || $updated{GALIL}))
 {
 	my $FILTER_TAG=$modules{GALIL};
@@ -691,35 +779,6 @@ if (exists($modules{GALIL}) && (!$UPDATE || $updated{GALIL}))
 		do_substitution("asyn motor calc sscan autosave busy", "asyn motor calc sscan autosave busy seq pv", "GalilTestApp/src/Makefile");
 	}
 	
-	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
-}
-
-if (exists($modules{IPAC}) && (!$UPDATE || $updated{IPAC}))
-{
-	my $FILTER_TAG=$modules{IPAC};
-	
-	$FILTER_TAG =~ s/\./-/g;
-	
-	chdir "ipac-${FILTER_TAG}" or die "ERROR: Cannot enter directory ipac-${FILTER_TAG}: $!\n";
-	
-	add_line('-include $(TOP)/../RELEASE.local', "./configure/RELEASE");
-	add_line('-include $(TOP)/../RELEASE.$(EPICS_HOST_ARCH).local', "./configure/RELEASE");
-	add_line('-include $(TOP)/configure/RELEASE.local', "./configure/RELEASE");
-	
-	do_substitution('#registrar\(vipc', "registrar(vipc", "drvIpac/drvIpac.dbd");
-	do_substitution('#registrar\(tvme', "registrar(tvme", "drvIpac/drvIpac.dbd");
-	do_substitution('#registrar\(xy96', "registrar(xy96", "drvIpac/drvIpac.dbd");
-	
-	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
-}
-
-if (exists($modules{LABJACK}) && (!$UPDATE || $updated{LABJACK}))
-{
-	chdir "LabJack-$modules{LABJACK}" or die "ERROR: Cannot enter directory LabJack-$modules{LABJACK}: $!\n";
-
-	do_substitution ( "PROD_IOC_WIN32 = LabJackApp", "ifeq (windows-x64, \$(findstring windows-x64, \$(T_A)))\nPROD_IOC_WIN32 = LabJackApp\nendif", "LabJackApp/src/Makefile");
-	do_substitution ( "\QLIBRARY_IOC_WIN32 += LabJack\E", "ifeq (windows-x64, \$(findstring windows-x64, \$(T_A)))\nLIBRARY_IOC_WIN32 \+= LabJack\nendif", "LabJackApp/src/Makefile");
-
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
@@ -781,18 +840,6 @@ if (exists($modules{MEASCOMP}) && (!$UPDATE || $updated{MEASCOMP}))
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
-if (exists($modules{MCA}) && (!$UPDATE || $updated{MCA}))
-{
-	chdir "mca-$modules{MCA}" or die "ERROR: Cannot enter directory mca-$modules{MCA}: $!\n";
-	add_line("SCALER=", "./configure/RELEASE");
-	
-	unlink("configure/CONFIG_SITE.linux-x86.linux-arm");
-	unlink("configure/CONFIG_SITE.linux-x86_64.linux-arm");
-	add_line("LINUX_LIBUSB-1.0_INSTALLED = NO", "./configure/CONFIG_SITE.linux-x86_64.linux-arm");
-	add_line("LINUX_LIBUSB-1.0_INSTALLED = NO", "./configure/CONFIG_SITE.linux-x86.linux-arm");
-	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
-}
-
 if (exists($modules{MOTOR}) && (!$UPDATE || $updated{MOTOR}))
 {
 	chdir "motor-$modules{MOTOR}" or die "ERROR: Cannot enter directory motor-$modules{MOTOR}: $!\n";
@@ -809,72 +856,14 @@ if (exists($modules{MOTOR}) && (!$UPDATE || $updated{MOTOR}))
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 
-if (exists($modules{MCOREUTILS}) && (!$UPDATE || $updated{MCOREUTILS}))
+
+##############################
+# Data-Driven Module Patches #
+##############################
+
+foreach my $key (sort keys %module_patches)
 {
-	my $FILTER_TAG=$modules{MCOREUTILS};
-	$FILTER_TAG =~ s/\./-/g;
-	chdir "MCoreUtils-$FILTER_TAG" or die "ERROR: Cannot enter directory MCoreUtils-$FILTER_TAG: $!\n";
-	add_line("-include \$(MCOREUTILS)/configure/RELEASE", "./exampleTop/configure/RELEASE");
-	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
-}
-
-
-if (exists($modules{QUADEM}) && (!$UPDATE || $updated{QUADEM}))
-{
-	chdir "quadEM-$modules{QUADEM}" or die "ERROR: Cannot enter directory quadEM-$modules{QUADEM}: $!\n";
-
-	foreach my $file (glob("quadEMApp/op/ui/*.ui"))
-	{
-		unlink("$file");
-	}
-
-	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
-}
-
-if (exists($modules{STREAM}) && (!$UPDATE || $updated{STREAM}))
-{
-	my $FILTER_TAG=$modules{STREAM};
-	
-	$FILTER_TAG =~ s/\./-/g;
-	
-	chdir "StreamDevice-${FILTER_TAG}" or die "ERROR: Cannot enter directory StreamDevice-${FILTER_TAG}: $!\n";
-	
-	unlink("GNUmakefile");
-	
-	do_substitution( "PCRE=", "#PCRE=", "configure/RELEASE");
-	
-	if (exists($modules{SNCSEQ}))
-	{
-		add_line("SNCSEQ=", "./configure/RELEASE");
-	}
-	
-	add_line("SSCAN=", "./configure/RELEASE");
-	add_line("STREAM=", "./configure/RELEASE");
-	
-	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
-}
-
-if (exists($modules{XSPRESS3}) && (!$UPDATE || $updated{XSPRESS3}))
-{
-	my $FILTER_TAG=$modules{XSPRESS3};
-	
-	$FILTER_TAG =~ s/\./-/g;
-	
-	chdir "xspress3-${FILTER_TAG}" or die "ERROR: Cannot enter directory xspress3-${FILTER_TAG}: $!\n";
-	
-	do_substitution("linux-x86_64", "x86_64", "xspress3App/src/Makefile");
-	do_substitution("linux-x86_64", "x86_64", "iocs/xspress3IOC/xspress3App/src/Makefile");
-	
-	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
-}
-
-if (exists($modules{YOKOGAWA_DAS}) && (!$UPDATE || $updated{YOKOGAWA_DAS}))
-{
-	chdir "Yokogawa_DAS-$modules{YOKOGAWA_DAS}" or die "ERROR: Cannot enter directory Yokogawa_DAS-$modules{YOKOGAWA_DAS}: $!\n";
-
-	do_substitution("CROSS_COMPILER_TARGET_ARCHS", "#CROSS_COMPILER_TARGET_ARCHS", "configure/CONFIG_SITE");
-
-	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
+	apply_patches($key, $module_patches{$key});
 }
 
 

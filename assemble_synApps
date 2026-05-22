@@ -760,6 +760,8 @@ if (exists($modules{ASYN}) && (!$UPDATE || $updated{ASYN}))
 		copy("./configure/CONFIG_SITE.Common.linux-x86_64", "./configure/CONFIG_SITE.Common.rhel9-x86_64-debug");
 	}
 	
+	do_substitution("#DRV_VXI11", "DRV_VXI11", "./configure/CONFIG_SITE");
+	
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
 

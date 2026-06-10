@@ -77,13 +77,14 @@ if ($releasefile eq "default")
 	$modules{'AREA_DETECTOR'} = 'R3-12-1';
 	$modules{'AREA_DETECTOR_SUBMODULES'} = ''; # Space-separated list of extra submodules to check out
 	$modules{'ASYN'} = 'R4-44-2';
+	#$modules{'AUTOPARAM'} = 'v2.1.0';
 	$modules{'AUTOSAVE'} = 'R5-11';
 	$modules{'BUSY'} = 'R1-7-4';
 	$modules{'CALC'} = 'R3-7-5';
 	$modules{'CAMAC'} = 'R2-7-5';
 	$modules{'CAPUTRECORDER'} = 'R1-7-6';
 	$modules{'DAC128V'} = 'R2-10-1';
-	#$modules{'DANTE'} = 'master';
+	$modules{'DANTE'} = 'master';
 	$modules{'DELAYGEN'} = 'R1-2-4';
 	$modules{'DXP'} = 'R6-1';
 	$modules{'DXPSITORO'} = 'R1-3';
@@ -95,6 +96,7 @@ if ($releasefile eq "default")
 	$modules{'IP330'} = 'R2-10';
 	$modules{'IPUNIDIG'} = 'R2-12';
 	$modules{'LABJACK'} = 'R3-0';
+	$modules{'KETEK'} = 'R1-0';
 	$modules{'LOVE'} = 'R3-2-9';
 	$modules{'LUA'} = 'R3-1';
 	$modules{'MCA'} = 'R7-10';
@@ -102,10 +104,11 @@ if ($releasefile eq "default")
 	$modules{'ULDAQ'} = '1.2.1';
 	$modules{'MODBUS'} = 'R3-3';
 	$modules{'MOTOR'} = 'R7-3-1';
-	#$modules{'MCOREUTILS'} = '1.2.2';
+	$modules{'MCOREUTILS'} = '1.2.2';
 	#$modules{'OPCUA'} = 'v0.9.3';
 	#$modules{'UASDK'} = '/path/to/sdk';
 	$modules{'OPTICS'} = 'R2-14';
+	$modules{'PYDEVSUP'} = '1.2';
 	$modules{'QUADEM'} = 'R9-5';
 	$modules{'SNCSEQ'} = 'R2-2-9';
 	$modules{'SOFTGLUE'} = 'R2-8-4';
@@ -114,6 +117,8 @@ if ($releasefile eq "default")
 	$modules{'SCALER'} = '4.1';
 	$modules{'STD'} = 'R3-6-4';
 	$modules{'STREAM'} = '2.8.24';
+	$modules{'TWINCAT'} = 'v2.1.3';
+	$modules{'URROBOT'} = 'R2-2';
 	$modules{'VAC'} = 'R1-9-2';
 	$modules{'VME'} = 'R2-9-5';
 	$modules{'YOKOGAWA_DAS'} = 'R2-0-2';
@@ -412,6 +417,8 @@ sub module_dir {
 #   copy            - {src, dst}
 #   unlink          - {file}
 #   unlink_glob     - {pattern}
+#   init_submodules - {paths => [...]}
+
 sub apply_patches {
 	my ($key, $patches_ref) = @_;
 	
@@ -438,6 +445,9 @@ sub apply_patches {
 		elsif ($op eq "copy")            { copy($patch->{src}, $patch->{dst}); }
 		elsif ($op eq "unlink")          { unlink($patch->{file}); }
 		elsif ($op eq "unlink_glob")     { foreach my $f (glob($patch->{pattern})) { unlink($f); } }
+		elsif ($op eq "init_submodules") { my @paths = exists($patch->{paths}) ? @{$patch->{paths}} : ();
+		                                   run_cmd("git", "submodule", "update", "--init", @paths);
+		                                   warn "WARNING: git submodule update --init failed for $key\n" if $? != 0; }
 		else                             { warn "WARNING: Unknown patch operation '$op' for $key\n"; }
 	}
 	
@@ -452,6 +462,7 @@ sub apply_patches {
 $module_info{ALIVE}         = {group => "epics-modules",         repo => "alive"};
 $module_info{AREA_DETECTOR} = {group => "areaDetector",          repo => "areaDetector"};
 $module_info{ASYN}          = {group => "epics-modules",         repo => "asyn"};
+$module_info{AUTOPARAM}     = {group => "Cosylab",               repo => "autoparamDriver"};
 $module_info{AUTOSAVE}      = {group => "epics-modules",         repo => "autosave"};
 $module_info{BUSY}          = {group => "epics-modules",         repo => "busy"};
 $module_info{CALC}          = {group => "epics-modules",         repo => "calc"};
@@ -470,6 +481,7 @@ $module_info{IPAC}          = {group => "epics-modules",         repo => "ipac"}
 $module_info{IP330}         = {group => "epics-modules",         repo => "ip330"};
 $module_info{IPUNIDIG}      = {group => "epics-modules",         repo => "ipUnidig"};
 $module_info{LABJACK}       = {group => "epics-modules",         repo => "LabJack"};
+$module_info{KETEK}         = {group => "epics-modules",         repo => "ketek"};
 $module_info{LOVE}          = {group => "epics-modules",         repo => "love"};
 $module_info{LUA}           = {group => "epics-modules",         repo => "lua"};
 $module_info{MCA}           = {group => "epics-modules",         repo => "mca"};
@@ -478,6 +490,7 @@ $module_info{MODBUS}        = {group => "epics-modules",         repo => "modbus
 $module_info{MOTOR}         = {group => "epics-modules",         repo => "motor"};
 $module_info{MCOREUTILS}    = {group => "epics-modules",         repo => "MCoreUtils"};
 $module_info{OPTICS}        = {group => "epics-modules",         repo => "optics"};
+$module_info{PYDEVSUP}      = {group => "epics-modules",         repo => "pyDevSup"};
 $module_info{QUADEM}        = {group => "epics-modules",         repo => "quadEM"};
 $module_info{SCALER}        = {group => "epics-modules",         repo => "scaler"};
 $module_info{SNCSEQ}        = {group => "epics-modules",         repo => "sequencer"};
@@ -486,6 +499,8 @@ $module_info{SOFTGLUEZYNQ}  = {group => "epics-modules",         repo => "softGl
 $module_info{SSCAN}         = {group => "epics-modules",         repo => "sscan"};
 $module_info{STD}           = {group => "epics-modules",         repo => "std"};
 $module_info{STREAM}        = {group => "paulscherrerinstitute", repo => "StreamDevice"};
+$module_info{TWINCAT}       = {group => "epics-modules",         repo => "twincat-ads"};
+$module_info{URROBOT}       = {group => "epics-modules",         repo => "urRobot"};
 $module_info{VAC}           = {group => "epics-modules",         repo => "vac"};
 $module_info{VME}           = {group => "epics-modules",         repo => "vme"};
 $module_info{XSPRESS3}      = {group => "epics-modules",         repo => "xspress3"};
@@ -496,6 +511,10 @@ $module_info{XXX}           = {group => "epics-modules",         repo => "xxx"};
 ################################
 # Module Patch Definitions     #
 ################################
+
+$module_patches{AUTOPARAM} = [
+ 	{op => "substitute", search => "MODULES =", replace => "SUPPORT =", file => "configure/RELEASE"},
+];
 
 $module_patches{CALC} = [
 	{op => "substitute", search => "#SNCSEQ", replace => "SNCSEQ", file => "configure/RELEASE",
@@ -540,6 +559,12 @@ $module_patches{LABJACK} = [
 	                     file => "LabJackApp/src/Makefile"},
 ];
 
+$module_patches{MOTOR} = [
+	{op => "init_submodules"},
+	{op => "substitute", search => "#!LUA=", replace => "LUA=", file => "configure/RELEASE", 
+	 cond => sub { exists($modules{LUA}) }},
+];
+
 $module_patches{MCA} = [
 	{op => "add_line",   line => "SCALER=", file => "./configure/RELEASE"},
 	{op => "write_file", file => "configure/CONFIG_SITE.linux-x86_64.linux-arm",
@@ -549,7 +574,21 @@ $module_patches{MCA} = [
 ];
 
 $module_patches{MCOREUTILS} = [
-	{op => "add_line", line => '-include $(MCOREUTILS)/configure/RELEASE', file => "./exampleTop/configure/RELEASE"},
+	{op => "add_line", line => 'EPICS_BASE=', file => "./configure/RELEASE.local"},
+	{op => "add_line", line => 'SUPPORT=', file => "./configure/RELEASE.local"},
+	{op => "add_line", line => 'SNCSEQ=', file => "./configure/RELEASE.local",
+	 cond => sub { exists($modules{SNCSEQ}) }},
+];
+
+$module_patches{PYDEVSUP} = [
+	{op => "add_line", line => "EPICS_BASE=", file => "./configure/RELEASE.local"},
+	{op => "add_line", line => "SUPPORT=", file => "./configure/RELEASE.local"},
+	{op => "add_line", line => "DEVIOCSTATS=", file => "./configure/RELEASE.local",
+	 cond => sub { exists($modules{DEVIOCSTATS}) }},
+	{op => "add_line", line => "AUTOSAVE=", file => "./configure/RELEASE.local",
+	 cond => sub { exists($modules{AUTOSAVE}) }},
+	{op => "add_line", line => "CAPUTLOG=", file => "./configure/RELEASE.local",
+	 cond => sub { exists($modules{CAPUTLOG}) }},
 ];
 
 $module_patches{QUADEM} = [
@@ -563,6 +602,13 @@ $module_patches{STREAM} = [
 	 cond => sub { exists($modules{SNCSEQ}) }},
 	{op => "add_line",   line => "SSCAN=",  file => "./configure/RELEASE"},
 	{op => "add_line",   line => "STREAM=", file => "./configure/RELEASE"},
+];
+
+$module_patches{TWINCAT} = [
+	{op => "init_submodules"},
+	{op => "add_line", line => "EPICS_BASE=", file => "./configure/RELEASE.local"},
+	{op => "add_line", line => "SUPPORT=", file => "./configure/RELEASE.local"},
+	{op => "add_line", line => "ASYN=", file => "./configure/RELEASE.local"},	
 ];
 
 $module_patches{XSPRESS3} = [
@@ -767,49 +813,83 @@ if (exists($modules{ASYN}) && (!$UPDATE || $updated{ASYN}))
 
 if (exists($modules{MEASCOMP}) && (!$UPDATE || $updated{MEASCOMP}))
 {
-	chdir "measComp-$modules{MEASCOMP}" or die "ERROR: Cannot enter directory measComp-$modules{MEASCOMP}: $!\n";
+	my $MEASCOMP_DIR = module_dir("MEASCOMP");
+	chdir $MEASCOMP_DIR or die "ERROR: Cannot enter directory $MEASCOMP_DIR: $!\n";
 	
 	
-	if ($^O eq "linux")
+	if ($^O eq "linux" && exists($modules{ULDAQ}))
 	{
 		my $ULDAQ = $modules{ULDAQ};
 		
-		if ($UPDATE && -d "libuldaq-${ULDAQ}" && -d "libuldaq-${ULDAQ}/lib")
+		# Write ULDAQ path to support RELEASE
+		say $RELEASE "ULDAQ=\$(SUPPORT)/$MEASCOMP_DIR/libuldaq";
+		
+		if ($UPDATE && -d "libuldaq")
 		{
-			info "Skipping uldaq build (already present)\n";
-			
-			chdir "libuldaq-${ULDAQ}" or die "ERROR: Cannot enter directory libuldaq-${ULDAQ}: $!\n";
-			my $PWD = getcwd();
-			say $RELEASE  "ULDAQ=${PWD}";
-			chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
+			info "Skipping uldaq download (already present)\n";
 		}
 		else
 		{
-			rmtree("libuldaq-${ULDAQ}");
+			rmtree("libuldaq");
 			run_cmd("curl", "-LO", "https://github.com/mccdaq/uldaq/releases/download/v${ULDAQ}/libuldaq-${ULDAQ}.tar.bz2");
 			die "ERROR: Failed to download libuldaq-${ULDAQ}.tar.bz2\n" if $? != 0;
 			run_cmd("tar", "-xvjf", "libuldaq-${ULDAQ}.tar.bz2");
 			die "ERROR: Failed to extract libuldaq-${ULDAQ}.tar.bz2\n" if $? != 0;
 			unlink("libuldaq-${ULDAQ}.tar.bz2");
-		
-			chdir "libuldaq-${ULDAQ}" or die "ERROR: Cannot enter directory libuldaq-${ULDAQ}: $!\n";
-			
-			my $PWD = getcwd();
-			
-			run_cmd("./configure", "--prefix=${PWD}");
-			warn "WARNING: uldaq configure failed\n" if $? != 0;
-			run_cmd("make");
-			warn "WARNING: uldaq make failed\n" if $? != 0;
-			`make install || true`;
-			
-			unlink("../configure/CONFIG_SITE.local");
-			add_line("USR_LDFLAGS+=-L${PWD}/lib", "../configure/CONFIG_SITE.local");
-			add_line("USR_CPPFLAGS+=-I${PWD}/include", "../configure/CONFIG_SITE.local");
-
-			say $RELEASE  "ULDAQ=${PWD}";
-
-			chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
+			move("libuldaq-${ULDAQ}", "libuldaq");
 		}
+		
+		# Write out-of-tree autotools wrapper Makefile
+		open(my $mf, ">", "libuldaq/Makefile") or die "ERROR: Cannot write libuldaq/Makefile: $!\n";
+		print $mf <<'ULDAQ_MAKEFILE';
+# Makefile for building libuldaq per EPICS_HOST_ARCH
+# Uses out-of-tree autotools builds so multiple architectures can coexist.
+
+TOP_DIR     := $(abspath .)
+BUILD_DIR   := $(TOP_DIR)/build-$(EPICS_HOST_ARCH)
+INSTALL_DIR := $(TOP_DIR)/$(EPICS_HOST_ARCH)
+
+all install: $(INSTALL_DIR)/lib/libuldaq.a
+
+$(INSTALL_DIR)/lib/libuldaq.a:
+	@echo "Building libuldaq for $(EPICS_HOST_ARCH)..."
+	mkdir -p $(BUILD_DIR)
+	cd $(BUILD_DIR) && $(TOP_DIR)/configure --prefix=$(INSTALL_DIR)
+	$(MAKE) -C $(BUILD_DIR)
+	-$(MAKE) -C $(BUILD_DIR) install
+	@echo "libuldaq installed to $(INSTALL_DIR)"
+
+clean:
+	rm -rf $(BUILD_DIR)
+
+distclean realclean:
+	rm -rf build-* $(wildcard rhel*) $(wildcard linux-*)
+
+rebuild: distclean all
+
+uninstall:
+	rm -rf $(INSTALL_DIR)
+
+.PHONY: all install clean distclean realclean rebuild uninstall
+ULDAQ_MAKEFILE
+		close($mf);
+		
+		# Write arch-aware CONFIG_SITE.local using measComp's ULDAQ_DIR/ULDAQ_INCLUDE
+		unlink("configure/CONFIG_SITE.local");
+		add_line('ULDAQ_DIR=$(TOP)/libuldaq/$(EPICS_HOST_ARCH)/lib', "./configure/CONFIG_SITE.local");
+		add_line('ULDAQ_INCLUDE=$(TOP)/libuldaq/$(EPICS_HOST_ARCH)/include', "./configure/CONFIG_SITE.local");
+		
+		# Add libuldaq to DIRS in measComp's top-level Makefile
+		do_substitution(
+			'DIRS := \$\(DIRS\) measCompSupport',
+			'DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard libuldaq))' . "\n" . 'DIRS := $(DIRS) measCompSupport',
+			"Makefile"
+		);
+		do_substitution(
+			'measCompApp_DEPEND_DIRS \+= measCompSupport',
+			"measCompSupport_DEPEND_DIRS += libuldaq\nmeasCompApp_DEPEND_DIRS += measCompSupport",
+			"Makefile"
+		);
 	}
 	
 	if ($HAVE_HIDAPI eq "NO")
@@ -818,22 +898,6 @@ if (exists($modules{MEASCOMP}) && (!$UPDATE || $updated{MEASCOMP}))
 		{
 			do_substitution("HAVE_HIDAPI=YES", "HAVE_HIDAPI=NO", $file);
 		}
-	}
-	
-	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
-}
-
-if (exists($modules{MOTOR}) && (!$UPDATE || $updated{MOTOR}))
-{
-	chdir "motor-$modules{MOTOR}" or die "ERROR: Cannot enter directory motor-$modules{MOTOR}: $!\n";
-	run_cmd("git", "submodule", "init");
-	warn "WARNING: git submodule init failed for motor\n" if $? != 0;
-	run_cmd("git", "submodule", "update");
-	warn "WARNING: git submodule update failed for motor\n" if $? != 0;
-	
-	if (exists($modules{LUA}))
-	{
-		do_substitution("#!LUA=", "LUA=", "configure/RELEASE");
 	}
 	
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";

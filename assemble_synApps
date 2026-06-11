@@ -840,44 +840,56 @@ if (exists($modules{MEASCOMP}) && (!$UPDATE || $updated{MEASCOMP}))
 		}
 		
 		# Write out-of-tree autotools wrapper Makefile
+		# Installs library and header into measComp's lib/<arch>/ and include/ directories
 		open(my $mf, ">", "libuldaq/Makefile") or die "ERROR: Cannot write libuldaq/Makefile: $!\n";
 		print $mf <<'ULDAQ_MAKEFILE';
 # Makefile for building libuldaq per EPICS_HOST_ARCH
-# Uses out-of-tree autotools builds so multiple architectures can coexist.
+# Installs into measComp's lib and include directories so downstream
+# consumers find libuldaq automatically via the MEASCOMP path.
 
-TOP_DIR     := $(abspath .)
-BUILD_DIR   := $(TOP_DIR)/build-$(EPICS_HOST_ARCH)
-INSTALL_DIR := $(TOP_DIR)/$(EPICS_HOST_ARCH)
+TOP_DIR      := $(abspath .)
+MEASCOMP_TOP := $(abspath $(TOP_DIR)/..)
+BUILD_DIR    := $(TOP_DIR)/build-$(EPICS_HOST_ARCH)
+INSTALL_LIB  := $(MEASCOMP_TOP)/lib/$(EPICS_HOST_ARCH)
+INSTALL_INC  := $(MEASCOMP_TOP)/include
 
-all install: $(INSTALL_DIR)/lib/libuldaq.a
+all install: $(INSTALL_LIB)/libuldaq.a
 
-$(INSTALL_DIR)/lib/libuldaq.a:
+$(INSTALL_LIB)/libuldaq.a:
 	@echo "Building libuldaq for $(EPICS_HOST_ARCH)..."
-	mkdir -p $(BUILD_DIR)
-	cd $(BUILD_DIR) && $(TOP_DIR)/configure --prefix=$(INSTALL_DIR)
+	mkdir -p $(BUILD_DIR) $(INSTALL_LIB) $(INSTALL_INC)
+	cd $(BUILD_DIR) && $(TOP_DIR)/configure \
+		--prefix=$(MEASCOMP_TOP) \
+		--libdir=$(INSTALL_LIB) \
+		--includedir=$(INSTALL_INC)
 	$(MAKE) -C $(BUILD_DIR)
 	-$(MAKE) -C $(BUILD_DIR) install
-	@echo "libuldaq installed to $(INSTALL_DIR)"
+	@echo "libuldaq installed to $(INSTALL_LIB)"
 
 clean:
 	rm -rf $(BUILD_DIR)
 
-distclean realclean:
-	rm -rf build-* $(wildcard rhel*) $(wildcard linux-*)
+distclean realclean: clean
+	rm -f $(INSTALL_LIB)/libuldaq.a $(INSTALL_LIB)/libuldaq.la
+	rm -f $(INSTALL_LIB)/libuldaq.so*
+	rm -f $(INSTALL_INC)/uldaq.h
+	rm -rf build-*
 
 rebuild: distclean all
 
 uninstall:
-	rm -rf $(INSTALL_DIR)
+	rm -f $(INSTALL_LIB)/libuldaq.a $(INSTALL_LIB)/libuldaq.la
+	rm -f $(INSTALL_LIB)/libuldaq.so*
+	rm -f $(INSTALL_INC)/uldaq.h
 
 .PHONY: all install clean distclean realclean rebuild uninstall
 ULDAQ_MAKEFILE
 		close($mf);
 		
-		# Write arch-aware CONFIG_SITE.local using measComp's ULDAQ_DIR/ULDAQ_INCLUDE
+		# Write CONFIG_SITE.local pointing at measComp's own lib/include directories
 		unlink("configure/CONFIG_SITE.local");
-		add_line('ULDAQ_DIR=$(TOP)/libuldaq/$(EPICS_HOST_ARCH)/lib', "./configure/CONFIG_SITE.local");
-		add_line('ULDAQ_INCLUDE=$(TOP)/libuldaq/$(EPICS_HOST_ARCH)/include', "./configure/CONFIG_SITE.local");
+		add_line('ULDAQ_DIR=$(TOP)/lib/$(EPICS_HOST_ARCH)', "./configure/CONFIG_SITE.local");
+		add_line('ULDAQ_INCLUDE=$(TOP)/include', "./configure/CONFIG_SITE.local");
 		
 		# Add libuldaq to DIRS in measComp's top-level Makefile
 		do_substitution(

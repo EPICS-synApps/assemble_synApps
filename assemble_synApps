@@ -105,7 +105,8 @@ if ($releasefile eq "default")
 	$modules{'MODBUS'} = 'R3-3';
 	$modules{'MOTOR'} = 'R7-3-1';
 	$modules{'MCOREUTILS'} = '1.2.2';
-	#$modules{'OPCUA'} = 'v0.9.3';
+	$modules{'OPCUA'} = 'v0.11.2';
+	$modules{'OPEN62541'} = 'v1.3.15';
 	#$modules{'UASDK'} = '/path/to/sdk';
 	$modules{'OPTICS'} = 'R2-14';
 	$modules{'PYDEVSUP'} = '1.2';
@@ -154,6 +155,10 @@ elsif (-e $releasefile)
 				validate_tag("$key entry", $submod) if $submod ne '';
 			}
 		}
+		elsif ($key eq "UASDK")
+		{
+			# UASDK value is a filesystem path; skip tag validation
+		}
 		elsif (defined $val && $val ne '')
 		{
 			validate_tag($key, $val);
@@ -175,6 +180,10 @@ foreach my $change (keys %setmodule)
 		{
 			validate_tag("$change entry", $submod) if $submod ne '';
 		}
+	}
+	elsif ($change eq "UASDK")
+	{
+		# UASDK value is a filesystem path; skip tag validation
 	}
 	elsif ($setmodule{$change} ne '')
 	{
@@ -417,7 +426,7 @@ sub module_dir {
 #   copy            - {src, dst}
 #   unlink          - {file}
 #   unlink_glob     - {pattern}
-#   init_submodules - {paths => [...]}
+#   init_submodules - {paths => [...], recursive => 1}
 
 sub apply_patches {
 	my ($key, $patches_ref) = @_;
@@ -446,7 +455,8 @@ sub apply_patches {
 		elsif ($op eq "unlink")          { unlink($patch->{file}); }
 		elsif ($op eq "unlink_glob")     { foreach my $f (glob($patch->{pattern})) { unlink($f); } }
 		elsif ($op eq "init_submodules") { my @paths = exists($patch->{paths}) ? @{$patch->{paths}} : ();
-		                                   run_cmd("git", "submodule", "update", "--init", @paths);
+		                                   my @recursive = $patch->{recursive} ? ("--recursive") : ();
+		                                   run_cmd("git", "submodule", "update", "--init", @recursive, @paths);
 		                                   warn "WARNING: git submodule update --init failed for $key\n" if $? != 0; }
 		else                             { warn "WARNING: Unknown patch operation '$op' for $key\n"; }
 	}
@@ -474,6 +484,7 @@ $module_info{DELAYGEN}      = {group => "epics-modules",         repo => "delayg
 $module_info{DXP}           = {group => "epics-modules",         repo => "dxp"};
 $module_info{DXPSITORO}     = {group => "epics-modules",         repo => "dxpSITORO"};
 $module_info{DEVIOCSTATS}   = {group => "epics-modules",         repo => "iocStats"};
+$module_info{ECMC}          = {group => "epics-modules",         repo => "ecmc"};
 $module_info{ETHERIP}       = {group => "epics-modules",         repo => "ether_ip"};
 $module_info{GALIL}         = {group => "motorapp",              repo => "Galil"};
 $module_info{IP}            = {group => "epics-modules",         repo => "ip"};
@@ -489,6 +500,8 @@ $module_info{MEASCOMP}      = {group => "epics-modules",         repo => "measCo
 $module_info{MODBUS}        = {group => "epics-modules",         repo => "modbus"};
 $module_info{MOTOR}         = {group => "epics-modules",         repo => "motor"};
 $module_info{MCOREUTILS}    = {group => "epics-modules",         repo => "MCoreUtils"};
+$module_info{MQTT}          = {group => "epics-modules",         repo => "mqtt"};
+$module_info{OPCUA}         = {group => "epics-modules",         repo => "opcua"};
 $module_info{OPTICS}        = {group => "epics-modules",         repo => "optics"};
 $module_info{PYDEVSUP}      = {group => "epics-modules",         repo => "pyDevSup"};
 $module_info{QUADEM}        = {group => "epics-modules",         repo => "quadEM"};
@@ -499,6 +512,7 @@ $module_info{SOFTGLUEZYNQ}  = {group => "epics-modules",         repo => "softGl
 $module_info{SSCAN}         = {group => "epics-modules",         repo => "sscan"};
 $module_info{STD}           = {group => "epics-modules",         repo => "std"};
 $module_info{STREAM}        = {group => "paulscherrerinstitute", repo => "StreamDevice"};
+$module_info{SYRINGEPUMP}   = {group => "epics-modules",         repo => "SyringePump"};
 $module_info{TWINCAT}       = {group => "epics-modules",         repo => "twincat-ads"};
 $module_info{URROBOT}       = {group => "epics-modules",         repo => "urRobot"};
 $module_info{VAC}           = {group => "epics-modules",         repo => "vac"};
@@ -608,7 +622,16 @@ $module_patches{TWINCAT} = [
 	{op => "init_submodules"},
 	{op => "add_line", line => "EPICS_BASE=", file => "./configure/RELEASE.local"},
 	{op => "add_line", line => "SUPPORT=", file => "./configure/RELEASE.local"},
-	{op => "add_line", line => "ASYN=", file => "./configure/RELEASE.local"},	
+	{op => "add_line", line => "ASYN=", file => "./configure/RELEASE.local"},
+	{op => "substitute", search => '\Q${PWD}/tools/downloadADS.sh\E', replace => '$(CURDIR)/tools/downloadADS.sh', file => "Makefile"},
+	{op => "substitute", search => '\Q./tools/checkws.sh\E',          replace => '$(CURDIR)/tools/checkws.sh',        file => "Makefile"},
+];
+
+$module_patches{URROBOT} = [
+	{op => "init_submodules", recursive => 1},
+	{op => "add_line", line => "EPICS_BASE=", file => "./configure/RELEASE.local"},
+	{op => "add_line", line => "SUPPORT=", file => "./configure/RELEASE.local"},
+	{op => "add_line", line => "ASYN=", file => "./configure/RELEASE.local"},
 ];
 
 $module_patches{XSPRESS3} = [
@@ -910,6 +933,154 @@ ULDAQ_MAKEFILE
 		{
 			do_substitution("HAVE_HIDAPI=YES", "HAVE_HIDAPI=NO", $file);
 		}
+	}
+	
+	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
+}
+
+if (exists($modules{OPCUA}) && (!$UPDATE || $updated{OPCUA}))
+{
+	my $OPCUA_DIR = module_dir("OPCUA");
+	chdir $OPCUA_DIR or die "ERROR: Cannot enter directory $OPCUA_DIR: $!\n";
+	
+	# exampleTop is an embedded TOP that pulls EPICS_BASE and SUPPORT
+	# from the module's configure/RELEASE.local (populated by 'make release')
+	add_line("EPICS_BASE=", "./configure/RELEASE.local");
+	add_line("SUPPORT=", "./configure/RELEASE.local");
+	
+	# Determine which SDK to use: UASDK (commercial, pre-installed) or open62541 (open-source, built from source)
+	my $use_uasdk = 0;
+	
+	if (exists($modules{UASDK}) && $modules{UASDK} ne '')
+	{
+		if (-d $modules{UASDK})
+		{
+			$use_uasdk = 1;
+		}
+		else
+		{
+			warn "WARNING: UASDK path '$modules{UASDK}' does not exist; falling back to open62541\n";
+		}
+	}
+	
+	if ($use_uasdk)
+	{
+		my $UASDK_PATH = $modules{UASDK};
+		
+		info "\n";
+		info "Configuring OPCUA with Unified Automation SDK at: $UASDK_PATH\n";
+		info "\n";
+		
+		# Write CONFIG_SITE.local for UASDK
+		unlink("configure/CONFIG_SITE.local");
+		add_line("UASDK = $UASDK_PATH", "./configure/CONFIG_SITE.local");
+		add_line('UASDK_DEPLOY_MODE = PROVIDED', "./configure/CONFIG_SITE.local");
+		add_line('UASDK_LIB_DIR = $(UASDK)/lib', "./configure/CONFIG_SITE.local");
+		add_line('UASDK_SHRLIB_DIR = $(UASDK_LIB_DIR)', "./configure/CONFIG_SITE.local");
+		add_line('UASDK_USE_CRYPTO = YES', "./configure/CONFIG_SITE.local");
+		add_line('UASDK_USE_XMLPARSER = YES', "./configure/CONFIG_SITE.local");
+	}
+	elsif ($^O eq "linux" && exists($modules{OPEN62541}))
+	{
+		my $OPEN62541_VER = $modules{OPEN62541};
+		
+		# The tag includes a 'v' prefix, but the extracted directory does not
+		(my $OPEN62541_VER_BARE = $OPEN62541_VER) =~ s/^v//;
+		
+		validate_tag("OPEN62541", $OPEN62541_VER);
+		
+		if ($UPDATE && -d "open62541")
+		{
+			info "Skipping open62541 download (already present)\n";
+		}
+		else
+		{
+			info "\n";
+			info "Downloading open62541 $OPEN62541_VER for OPCUA module\n";
+			info "\n";
+			
+			rmtree("open62541");
+			run_cmd("curl", "-LO", "https://github.com/open62541/open62541/archive/refs/tags/${OPEN62541_VER}.tar.gz");
+			die "ERROR: Failed to download open62541-${OPEN62541_VER}.tar.gz\n" if $? != 0;
+			run_cmd("tar", "xzf", "${OPEN62541_VER}.tar.gz");
+			die "ERROR: Failed to extract open62541-${OPEN62541_VER}.tar.gz\n" if $? != 0;
+			unlink("${OPEN62541_VER}.tar.gz");
+			move("open62541-${OPEN62541_VER_BARE}", "open62541");
+		}
+		
+		info "\n";
+		info "Configuring OPCUA with open62541 $OPEN62541_VER (EMBED mode)\n";
+		info "\n";
+		
+		# Write out-of-tree CMake wrapper Makefile
+		# Builds a static, PIC library and installs into an in-module prefix
+		open(my $mf, ">", "open62541/Makefile") or die "ERROR: Cannot write open62541/Makefile: $!\n";
+		print $mf <<'OPEN62541_MAKEFILE';
+# Makefile for building open62541 per EPICS_HOST_ARCH
+# Builds a static library with PIC (required for EMBED mode) and
+# installs into the opcua module's open62541-install/ prefix so
+# the OPCUA build system finds headers and libraries automatically.
+
+TOP_DIR      := $(abspath .)
+OPCUA_TOP    := $(abspath $(TOP_DIR)/..)
+INSTALL_DIR  := $(OPCUA_TOP)/open62541-install
+BUILD_DIR    := $(TOP_DIR)/build-$(EPICS_HOST_ARCH)
+
+all install: $(INSTALL_DIR)/lib/libopen62541.a
+
+$(INSTALL_DIR)/lib/libopen62541.a:
+	@echo "Building open62541 for $(EPICS_HOST_ARCH)..."
+	mkdir -p $(BUILD_DIR)
+	cd $(BUILD_DIR) && cmake $(TOP_DIR) \
+		-DBUILD_SHARED_LIBS=OFF \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF \
+		-DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+		-DUA_ENABLE_ENCRYPTION=OPENSSL \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DCMAKE_INSTALL_PREFIX=$(INSTALL_DIR)
+	$(MAKE) -C $(BUILD_DIR)
+	$(MAKE) -C $(BUILD_DIR) install
+	@echo "open62541 installed to $(INSTALL_DIR)"
+
+clean:
+	rm -rf $(BUILD_DIR)
+
+distclean realclean: clean
+	rm -rf $(INSTALL_DIR)
+	rm -rf build-*
+
+rebuild: distclean all
+
+uninstall:
+	rm -rf $(INSTALL_DIR)
+
+.PHONY: all install clean distclean realclean rebuild uninstall
+OPEN62541_MAKEFILE
+		close($mf);
+		
+		# Write CONFIG_SITE.local for open62541 EMBED mode
+		unlink("configure/CONFIG_SITE.local");
+		add_line('OPEN62541 = $(TOP)/open62541-install', "./configure/CONFIG_SITE.local");
+		add_line('OPEN62541_DEPLOY_MODE = EMBED', "./configure/CONFIG_SITE.local");
+		add_line('OPEN62541_LIB_DIR = $(OPEN62541)/lib', "./configure/CONFIG_SITE.local");
+		add_line('OPEN62541_SHRLIB_DIR = $(OPEN62541_LIB_DIR)', "./configure/CONFIG_SITE.local");
+		add_line('OPEN62541_USE_CRYPTO = YES', "./configure/CONFIG_SITE.local");
+		add_line('OPEN62541_USE_XMLPARSER = YES', "./configure/CONFIG_SITE.local");
+		
+		# Add open62541 to DIRS in the opcua top-level Makefile so it builds first
+		# The opcua Makefile uses wildcard-based DIRS; we add an explicit entry
+		# and a dependency rule so devOpcuaSup waits for open62541 to finish
+		do_substitution(
+			'DIRS \\+= \\$\\(wildcard \\*Sup\\)',
+			'DIRS += $(wildcard *Sup)' . "\n" . 'DIRS += open62541',
+			"Makefile"
+		);
+		do_substitution(
+			'# Add any additional dependency rules here:',
+			"# Add any additional dependency rules here:\ndevOpcuaSup_DEPEND_DIRS += open62541",
+			"Makefile"
+		);
 	}
 	
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";

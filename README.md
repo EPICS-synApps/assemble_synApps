@@ -10,9 +10,10 @@ single synApps directory that will build with a single `make` command.
 
 - **Perl** 5.12 or later
 - **Git**
-- **curl** (for downloading AllenBradley and ULDAQ tarballs)
-- **make** and a **C/C++ compiler** (for building ULDAQ on Linux)
+- **curl** (for downloading AllenBradley, ULDAQ, and open62541 tarballs)
+- **make** and a **C/C++ compiler** (for building ULDAQ and open62541 on Linux)
 - A **built EPICS base** installation
+- **cmake**, **python3**, **libssl-dev**, **libxml2-dev** (for building open62541, only needed when OPCUA is enabled without a Unified Automation SDK)
 
 
 ## Quick Start
@@ -148,7 +149,7 @@ re-patching all the unchanged modules.
 
 ```bash
 # Add a new module to an existing synApps
-./assemble_synApps --base=/path/to/base --set OPCUA=v0.9.3 --update
+./assemble_synApps --base=/path/to/base --set OPCUA=v0.11.2 --update
 
 # Change one module's version
 ./assemble_synApps --base=/path/to/base --set ASYN=R4-45 --update
@@ -163,6 +164,7 @@ When `--update` is set:
 - The `configure/RELEASE` file is always regenerated to ensure consistency.
 - AllenBradley is skipped if its directory already exists.
 - The ULDAQ library build (inside measComp) is skipped if already built.
+- The open62541 library download (inside OPCUA) is skipped if already present.
 
 Without `--update`, the script restores every existing module to a clean state
 (`git stash`, `git clean -fdx`, `git checkout`) and re-applies all patches. This
@@ -239,5 +241,43 @@ The script can be safely re-run against an existing synApps directory:
 ./assemble_synApps --base=/path/to/base --update
 
 # Add a module to an existing deployment
-./assemble_synApps --base=/path/to/base --set OPCUA=v0.9.3 --update
+./assemble_synApps --base=/path/to/base --set OPCUA=v0.11.2 --update
+
+# Use the Unified Automation SDK instead of open62541 for OPCUA
+./assemble_synApps --base=/path/to/base --set UASDK=/opt/opcua/sdk
+```
+
+
+## OPCUA Module
+
+The OPCUA module supports two mutually exclusive OPC UA client SDK backends:
+
+- **open62541** (default) -- open-source, built from source automatically by the
+  script. Set the `OPEN62541` key to a version tag (e.g., `v1.3.15`). The library
+  is downloaded, built with CMake inside the opcua module directory, and configured
+  in EMBED mode (statically linked into `libopcua`). Requires `cmake`, `python3`,
+  `libssl-dev`, and `libxml2-dev` on the build host.
+
+- **Unified Automation SDK** (`UASDK`) -- a commercial, pre-installed SDK. Set the
+  `UASDK` key to the filesystem path of an existing SDK installation (e.g.,
+  `/opt/opcua/uasdkcppclient-v1.5.3/sdk`). The script configures OPCUA in PROVIDED
+  mode; no download or build is performed for the SDK itself.
+
+**SDK selection rule**: If `UASDK` is defined and the directory exists, the module is
+configured for the Unified Automation SDK. Otherwise, the script falls back to
+downloading and building open62541. If a `UASDK` path is set but does not exist, a
+warning is printed and open62541 is used.
+
+```bash
+# Default: uses open62541 v1.3.15
+./assemble_synApps --base=/path/to/base
+
+# Specify a different open62541 version
+./assemble_synApps --base=/path/to/base --set OPEN62541=v1.3.12
+
+# Use the Unified Automation SDK
+./assemble_synApps --base=/path/to/base --set UASDK=/opt/opcua/sdk
+
+# Disable OPCUA entirely
+./assemble_synApps --base=/path/to/base --set OPCUA=
 ```

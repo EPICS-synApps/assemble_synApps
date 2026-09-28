@@ -125,6 +125,35 @@ list and a config file.
 ```
 
 
+### latest
+
+Any repository module can be set to `latest` (case-insensitive) to automatically
+track its default branch, regardless of whether the repo uses `main`, `master`, or
+another name. The script resolves `latest` to the actual default branch via
+`git ls-remote` before cloning, so folder names and RELEASE paths reflect the real
+branch (e.g., `calc-master`, `sequencer-main`).
+
+```bash
+# Resolve individual modules to their default branch
+./assemble_synApps --base=/path/to/base --set SNCSEQ=latest --set CALC=latest
+
+# Use in a config file
+# myconfig.txt:
+#   CALC=latest
+#   SNCSEQ=latest
+#   SSCAN=latest
+./assemble_synApps --base=/path/to/base --config=myconfig.txt
+```
+
+Notes:
+
+- `latest` is only meaningful for repository modules. Setting it on keys that are
+  downloaded with curl (`OPEN62541`, `UASDK`, `ULDAQ`, `ALLENBRADLEY`) produces a warning 
+  and leaves the value unchanged.
+- If a repository actually has a branch or tag named `latest`, that real ref is used
+  as-is rather than resolving to the default branch.
+
+
 ### update
 
 The update option skips modules that are already cloned at the correct tag. This is

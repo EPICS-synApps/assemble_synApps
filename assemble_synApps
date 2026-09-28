@@ -70,6 +70,63 @@ if ($HELP)
 }
 
 
+#################################
+# Module Repository Information #
+#################################
+
+$module_info{ALIVE}         = {group => "epics-modules",         repo => "alive"};
+$module_info{AREA_DETECTOR} = {group => "areaDetector",          repo => "areaDetector"};
+$module_info{ASYN}          = {group => "epics-modules",         repo => "asyn"};
+$module_info{AUTOPARAM}     = {group => "Cosylab",               repo => "autoparamDriver"};
+$module_info{AUTOSAVE}      = {group => "epics-modules",         repo => "autosave"};
+$module_info{BUSY}          = {group => "epics-modules",         repo => "busy"};
+$module_info{CALC}          = {group => "epics-modules",         repo => "calc"};
+$module_info{CAMAC}         = {group => "epics-modules",         repo => "camac"};
+$module_info{CAPUTRECORDER} = {group => "epics-modules",         repo => "caputRecorder"};
+$module_info{DAC128V}       = {group => "epics-modules",         repo => "dac128V"};
+$module_info{DANTE}         = {group => "epics-modules",         repo => "Dante"};
+$module_info{DELAYGEN}      = {group => "epics-modules",         repo => "delaygen"};
+$module_info{DXP}           = {group => "epics-modules",         repo => "dxp"};
+$module_info{DXPSITORO}     = {group => "epics-modules",         repo => "dxpSITORO"};
+$module_info{DEVIOCSTATS}   = {group => "epics-modules",         repo => "iocStats"};
+$module_info{ECMC}          = {group => "epics-modules",         repo => "ecmc"};
+$module_info{ETHERIP}       = {group => "epics-modules",         repo => "ether_ip"};
+$module_info{GALIL}         = {group => "motorapp",              repo => "Galil"};
+$module_info{IP}            = {group => "epics-modules",         repo => "ip"};
+$module_info{IPAC}          = {group => "epics-modules",         repo => "ipac"};
+$module_info{IP330}         = {group => "epics-modules",         repo => "ip330"};
+$module_info{IPUNIDIG}      = {group => "epics-modules",         repo => "ipUnidig"};
+$module_info{LABJACK}       = {group => "epics-modules",         repo => "LabJack"};
+$module_info{KETEK}         = {group => "epics-modules",         repo => "ketek"};
+$module_info{LOVE}          = {group => "epics-modules",         repo => "love"};
+$module_info{LUA}           = {group => "epics-modules",         repo => "lua"};
+$module_info{MCA}           = {group => "epics-modules",         repo => "mca"};
+$module_info{MEASCOMP}      = {group => "epics-modules",         repo => "measComp"};
+$module_info{MODBUS}        = {group => "epics-modules",         repo => "modbus"};
+$module_info{MOTOR}         = {group => "epics-modules",         repo => "motor"};
+$module_info{MCOREUTILS}    = {group => "epics-modules",         repo => "MCoreUtils"};
+$module_info{MQTT}          = {group => "epics-modules",         repo => "mqtt"};
+$module_info{OPCUA}         = {group => "epics-modules",         repo => "opcua"};
+$module_info{OPTICS}        = {group => "epics-modules",         repo => "optics"};
+$module_info{PYDEVSUP}      = {group => "epics-modules",         repo => "pyDevSup"};
+$module_info{QUADEM}        = {group => "epics-modules",         repo => "quadEM"};
+$module_info{SCALER}        = {group => "epics-modules",         repo => "scaler"};
+$module_info{SNCSEQ}        = {group => "epics-modules",         repo => "sequencer"};
+$module_info{SOFTGLUE}      = {group => "epics-modules",         repo => "softGlue"};
+$module_info{SOFTGLUEZYNQ}  = {group => "epics-modules",         repo => "softGlueZynq"};
+$module_info{SSCAN}         = {group => "epics-modules",         repo => "sscan"};
+$module_info{STD}           = {group => "epics-modules",         repo => "std"};
+$module_info{STREAM}        = {group => "paulscherrerinstitute", repo => "StreamDevice"};
+$module_info{SYRINGEPUMP}   = {group => "epics-modules",         repo => "SyringePump"};
+$module_info{TWINCAT}       = {group => "epics-modules",         repo => "twincat-ads"};
+$module_info{URROBOT}       = {group => "epics-modules",         repo => "urRobot"};
+$module_info{VAC}           = {group => "epics-modules",         repo => "vac"};
+$module_info{VME}           = {group => "epics-modules",         repo => "vme"};
+$module_info{XSPRESS3}      = {group => "epics-modules",         repo => "xspress3"};
+$module_info{YOKOGAWA_DAS}  = {group => "epics-modules",         repo => "Yokogawa_DAS"};
+$module_info{XXX}           = {group => "epics-modules",         repo => "xxx"};
+
+
 if ($releasefile eq "default")
 {
 	$modules{'ALIVE'} = 'R1-4-1';
@@ -194,6 +251,34 @@ foreach my $change (keys %setmodule)
 }
 
 
+# Resolve any module set to 'latest' to its repo's actual default branch
+foreach my $key (sort keys %modules)
+{
+	next unless defined $modules{$key} && lc($modules{$key}) eq "latest";
+	
+	if (!exists($module_info{$key}))
+	{
+		warn "WARNING: '$key=latest' is not supported for non-repository entries; leaving value unchanged\n";
+		next;
+	}
+	
+	my ($default, $has_latest) = resolve_default_branch($module_info{$key}{group},
+	                                                    $module_info{$key}{repo});
+	die "ERROR: Could not resolve default branch for $key\n" unless $default;
+	
+	if ($has_latest)
+	{
+		# Repo actually has a ref named 'latest'; honor it literally
+		info("Note: $key repo has a real 'latest' ref; using it as-is\n");
+	}
+	else
+	{
+		info("Resolved $key=latest -> $default\n");
+		$modules{$key} = $default;
+	}
+}
+
+
 if ($CHECK)
 {
 	print("Module Definitions:\n");
@@ -248,6 +333,30 @@ sub validate_tag {
 	{
 		die "ERROR: Invalid value for $name: '$value' (only alphanumeric, '.', '-', '_' allowed)\n";
 	}
+}
+
+
+# Queries a GitHub repository to determine its default branch and whether
+# a ref named 'latest' exists. Uses a single git ls-remote call.
+# Returns ($default_branch, $has_latest_ref) on success, or (undef, undef)
+# on failure.
+sub resolve_default_branch {
+	my ($project, $repo) = @_;
+	
+	my $url = "https://github.com/$project/$repo.git";
+	my $output = `git ls-remote --symref $url 2>/dev/null`;
+	
+	return (undef, undef) if $? != 0;
+	
+	my $default;
+	if ($output =~ m{^ref:\s+refs/heads/(\S+)\s+HEAD}m)
+	{
+		$default = $1;
+	}
+	
+	my $has_latest = ($output =~ m{refs/(?:heads|tags)/latest\b}m) ? 1 : 0;
+	
+	return ($default, $has_latest);
 }
 
 
@@ -463,63 +572,6 @@ sub apply_patches {
 	
 	chdir ".." or die "ERROR: Cannot return to parent directory: $!\n";
 }
-
-
-#################################
-# Module Repository Information #
-#################################
-
-$module_info{ALIVE}         = {group => "epics-modules",         repo => "alive"};
-$module_info{AREA_DETECTOR} = {group => "areaDetector",          repo => "areaDetector"};
-$module_info{ASYN}          = {group => "epics-modules",         repo => "asyn"};
-$module_info{AUTOPARAM}     = {group => "Cosylab",               repo => "autoparamDriver"};
-$module_info{AUTOSAVE}      = {group => "epics-modules",         repo => "autosave"};
-$module_info{BUSY}          = {group => "epics-modules",         repo => "busy"};
-$module_info{CALC}          = {group => "epics-modules",         repo => "calc"};
-$module_info{CAMAC}         = {group => "epics-modules",         repo => "camac"};
-$module_info{CAPUTRECORDER} = {group => "epics-modules",         repo => "caputRecorder"};
-$module_info{DAC128V}       = {group => "epics-modules",         repo => "dac128V"};
-$module_info{DANTE}         = {group => "epics-modules",         repo => "Dante"};
-$module_info{DELAYGEN}      = {group => "epics-modules",         repo => "delaygen"};
-$module_info{DXP}           = {group => "epics-modules",         repo => "dxp"};
-$module_info{DXPSITORO}     = {group => "epics-modules",         repo => "dxpSITORO"};
-$module_info{DEVIOCSTATS}   = {group => "epics-modules",         repo => "iocStats"};
-$module_info{ECMC}          = {group => "epics-modules",         repo => "ecmc"};
-$module_info{ETHERIP}       = {group => "epics-modules",         repo => "ether_ip"};
-$module_info{GALIL}         = {group => "motorapp",              repo => "Galil"};
-$module_info{IP}            = {group => "epics-modules",         repo => "ip"};
-$module_info{IPAC}          = {group => "epics-modules",         repo => "ipac"};
-$module_info{IP330}         = {group => "epics-modules",         repo => "ip330"};
-$module_info{IPUNIDIG}      = {group => "epics-modules",         repo => "ipUnidig"};
-$module_info{LABJACK}       = {group => "epics-modules",         repo => "LabJack"};
-$module_info{KETEK}         = {group => "epics-modules",         repo => "ketek"};
-$module_info{LOVE}          = {group => "epics-modules",         repo => "love"};
-$module_info{LUA}           = {group => "epics-modules",         repo => "lua"};
-$module_info{MCA}           = {group => "epics-modules",         repo => "mca"};
-$module_info{MEASCOMP}      = {group => "epics-modules",         repo => "measComp"};
-$module_info{MODBUS}        = {group => "epics-modules",         repo => "modbus"};
-$module_info{MOTOR}         = {group => "epics-modules",         repo => "motor"};
-$module_info{MCOREUTILS}    = {group => "epics-modules",         repo => "MCoreUtils"};
-$module_info{MQTT}          = {group => "epics-modules",         repo => "mqtt"};
-$module_info{OPCUA}         = {group => "epics-modules",         repo => "opcua"};
-$module_info{OPTICS}        = {group => "epics-modules",         repo => "optics"};
-$module_info{PYDEVSUP}      = {group => "epics-modules",         repo => "pyDevSup"};
-$module_info{QUADEM}        = {group => "epics-modules",         repo => "quadEM"};
-$module_info{SCALER}        = {group => "epics-modules",         repo => "scaler"};
-$module_info{SNCSEQ}        = {group => "epics-modules",         repo => "sequencer"};
-$module_info{SOFTGLUE}      = {group => "epics-modules",         repo => "softGlue"};
-$module_info{SOFTGLUEZYNQ}  = {group => "epics-modules",         repo => "softGlueZynq"};
-$module_info{SSCAN}         = {group => "epics-modules",         repo => "sscan"};
-$module_info{STD}           = {group => "epics-modules",         repo => "std"};
-$module_info{STREAM}        = {group => "paulscherrerinstitute", repo => "StreamDevice"};
-$module_info{SYRINGEPUMP}   = {group => "epics-modules",         repo => "SyringePump"};
-$module_info{TWINCAT}       = {group => "epics-modules",         repo => "twincat-ads"};
-$module_info{URROBOT}       = {group => "epics-modules",         repo => "urRobot"};
-$module_info{VAC}           = {group => "epics-modules",         repo => "vac"};
-$module_info{VME}           = {group => "epics-modules",         repo => "vme"};
-$module_info{XSPRESS3}      = {group => "epics-modules",         repo => "xspress3"};
-$module_info{YOKOGAWA_DAS}  = {group => "epics-modules",         repo => "Yokogawa_DAS"};
-$module_info{XXX}           = {group => "epics-modules",         repo => "xxx"};
 
 
 ################################

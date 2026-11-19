@@ -650,6 +650,10 @@ $module_patches{MCOREUTILS} = [
 	 cond => sub { exists($modules{SNCSEQ}) }},
 ];
 
+$module_patches{MQTT} = [
+	{op => "subtitute", search => "MODULES =", replace => "SUPPORT=", file=> "configure/RELEASE"},
+];
+
 $module_patches{PYDEVSUP} = [
 	{op => "add_line", line => "EPICS_BASE=", file => "./configure/RELEASE.local"},
 	{op => "add_line", line => "SUPPORT=", file => "./configure/RELEASE.local"},

@@ -599,6 +599,10 @@ $module_patches{DANTE} = [
 	{op => "substitute", search => "linux-x86_64", replace => "x86_64", file => "danteApp/danteSrc/Makefile"},
 ];
 
+$module_patches{ECMC} = [
+	{op => "init_submodules"},
+];
+
 $module_patches{ETHERIP} = [
 	{op => "add_line",   line => "EPICS_BASE=", file => "./configure/RELEASE"},
 	{op => "substitute", search => '\QDIRS += testether_ipApp\E',           replace => '#DIRS \+= testether_ipApp',           file => "Makefile"},

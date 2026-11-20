@@ -310,3 +310,23 @@ warning is printed and open62541 is used.
 # Disable OPCUA entirely
 ./assemble_synApps --base=/path/to/base --set OPCUA=
 ```
+
+## areaDetector on embedded targets
+
+The existing vxWorks configuration disables GraphicsMagick, Blosc, bitshuffle and
+JSON while keeping native settings separate.
+
+RTEMS AD builds are skipped by default because this assembly does not yet supply
+the required RTEMS platform configuration. This also excludes direct ADCore
+consumers (ketek, quadEM, Dante, dxpSITORO and xspress3) and their contributions to
+the combined xxx IOC. Linux and vxWorks target selection is unchanged.
+
+Sites providing their own RTEMS AD configuration may explicitly opt in with:
+
+```bash
+make SYNAPPS_AD_RTEMS=YES
+```
+
+This enables build selection only; it does not install platform patches or imply
+runtime support. The generated `support/configure/CONFIG_SITE.ad-rtems` records
+the policy. Keep the selection consistent when building modules and example IOCs.

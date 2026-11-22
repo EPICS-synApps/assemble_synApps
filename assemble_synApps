@@ -704,6 +704,64 @@ $module_patches{YOKOGAWA_DAS} = [
 ];
 
 
+
+# BEGIN ASSEMBLER AD RTEMS POLICY
+# Installed platform configuration is separate from module functionality patches.
+sub configure_ad_rtems_policy {
+    return unless exists($modules{AREA_DETECTOR});
+    my @keys = grep { exists($modules{$_}) }
+        qw(AREA_DETECTOR KETEK QUADEM DANTE DXPSITORO XSPRESS3);
+    my @roots = map { module_dir($_) } @keys;
+    open(my $policy, ">", "configure/CONFIG_SITE.ad-rtems")
+        or die "ERROR: Cannot write AD RTEMS platform configuration: $!\n";
+    print $policy <<'AD_RTEMS_POLICY';
+# RTEMS platform configuration is not supplied by this assembly yet.
+# YES is an explicit opt-in for sites supplying their own AD RTEMS support.
+# It does not install a port or establish runtime functionality.
+SYNAPPS_AD_RTEMS ?= NO
+ifneq ($(SYNAPPS_AD_RTEMS),YES)
+AD_RTEMS_POLICY
+    print $policy '_SYNAPPS_AD_RTEMS_ROOTS := ',
+        join(' ', map { '$(abspath $(SUPPORT)/' . $_ . ')' } @roots), "\n";
+    if (exists($modules{XXX})) {
+        print $policy '_SYNAPPS_AD_RTEMS_XXX := $(abspath $(SUPPORT)/', module_dir('XXX'), ")\n";
+    }
+    print $policy <<'AD_RTEMS_POLICY';
+ifneq (,$(filter $(_SYNAPPS_AD_RTEMS_ROOTS) $(addsuffix /%,$(_SYNAPPS_AD_RTEMS_ROOTS)),$(abspath $(TOP))))
+override CROSS_COMPILER_TARGET_ARCHS := $(filter-out RTEMS%,$(CROSS_COMPILER_TARGET_ARCHS))
+endif
+# Keep the combined example IOC consistent with the module build selection.
+ifneq (,$(filter $(_SYNAPPS_AD_RTEMS_XXX) $(addsuffix /%,$(_SYNAPPS_AD_RTEMS_XXX)),$(abspath $(TOP))))
+ifeq ($(OS_CLASS),RTEMS)
+ADCORE :=
+ADSIMDETECTOR :=
+QUADEM :=
+KETEK :=
+DANTE :=
+DXPSITORO :=
+XSPRESS3 :=
+endif
+endif
+endif
+AD_RTEMS_POLICY
+    close($policy) or die "ERROR: Cannot close AD RTEMS platform configuration: $!\n";
+
+    # AD's shared CONFIG_SITE also covers its submodules and direct consumers.
+    # xxx needs the same selection for its DBD and library contributions.
+    foreach my $key (@keys, 'XXX') {
+        next unless exists($modules{$key});
+        my $file = module_dir($key) . '/configure/CONFIG_SITE';
+        next unless -f $file;
+        my $include = '-include $(SUPPORT)/configure/CONFIG_SITE.ad-rtems';
+        open(my $input, '<', $file) or die "ERROR: Cannot read $file: $!\n";
+        my $contents = do { local $/; <$input> };
+        close($input);
+        next if index($contents, $include) >= 0;
+        add_line("\n$include", $file);
+    }
+}
+# END ASSEMBLER AD RTEMS POLICY
+
 ####################
 # SynApps Creation #
 ####################
@@ -1166,6 +1224,8 @@ say $RELEASE "-include \$(SUPPORT)/configure/RELEASE.\$(EPICS_HOST_ARCH).local";
 
 
 close($RELEASE);
+
+configure_ad_rtems_policy();
 
 run_cmd("make", "release");
 warn "WARNING: 'make release' failed -- module RELEASE files may be inconsistent\n" if $? != 0;

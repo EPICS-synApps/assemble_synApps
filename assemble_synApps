@@ -651,7 +651,7 @@ $module_patches{MCOREUTILS} = [
 ];
 
 $module_patches{MQTT} = [
-	{op => "subtitute", search => "MODULES =", replace => "SUPPORT=", file=> "configure/RELEASE"},
+	{op => "substitute", search => "MODULES =", replace => "SUPPORT=", file=> "configure/RELEASE"},
 ];
 
 $module_patches{PYDEVSUP} = [

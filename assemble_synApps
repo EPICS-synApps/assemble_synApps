@@ -758,6 +758,7 @@ $module_patches{SOFTGLUEZYNQ} = [
 	# arpa/inet.h, pthread.h) declared as bare PROD, so they build for every
 	# arch including vxWorks. Restrict them to Linux targets, matching the
 	# module's LIBRARY_IOC_Linux.
+	{op => "substitute", search => 'CROSS_COMPILER_TARGET_ARCHS = linux-arm', replace => '#CROSS_COMPILER_TARGET_ARCHS = linux-arm', file=> "configure/CONFIG_SITE"},
 	{op => "substitute", search => 'PROD \+= socket_test1', replace => "PROD_Linux += socket_test1", file => "softGlueApp/src/Makefile"},
 	{op => "substitute", search => 'PROD \+= socket_test2', replace => "PROD_Linux += socket_test2", file => "softGlueApp/src/Makefile"},
 	{op => "substitute", search => 'PROD \+= socket_test3', replace => "PROD_Linux += socket_test3", file => "softGlueApp/src/Makefile"},

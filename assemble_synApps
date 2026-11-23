@@ -714,6 +714,7 @@ $module_patches{PYDEVSUP} = [
 	 cond => sub { exists($modules{AUTOSAVE}) }},
 	{op => "add_line", line => "CAPUTLOG=", file => "./configure/RELEASE.local",
 	 cond => sub { exists($modules{CAPUTLOG}) }},
+	{op => "add_line", line => "CROSS_COMPILER_TARGET_ARCHS = ", file => "./configure/CONFIG_SITE.local"},
 ];
 
 $module_patches{QUADEM} = [

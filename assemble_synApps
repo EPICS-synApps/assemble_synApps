@@ -580,6 +580,17 @@ sub apply_patches {
 
 $module_patches{AUTOPARAM} = [
  	{op => "substitute", search => "MODULES =", replace => "SUPPORT =", file => "configure/RELEASE"},
+	# autoparamDriver.cpp uses std::map::at() (C++11), which the old vxWorks gcc
+	# libstdc++ lacks. Exclude the library and the test IOC that links it from
+	# vxWorks builds.
+	{op => "substitute",
+	 search  => '\QLIBRARY_IOC += autoparamDriver\E',
+	 replace => "ifneq (\$(OS_CLASS),vxWorks)\nLIBRARY_IOC += autoparamDriver\nendif",
+	 file    => "autoparamDriverSup/src/Makefile"},
+	{op => "substitute",
+	 search  => '\QPROD_IOC = autoparamTest\E',
+	 replace => "ifneq (\$(OS_CLASS),vxWorks)\nPROD_IOC = autoparamTest\nendif",
+	 file    => "autoparamTestApp/src/Makefile"},
 ];
 
 $module_patches{CALC} = [

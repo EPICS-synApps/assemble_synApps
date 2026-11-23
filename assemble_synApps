@@ -704,6 +704,20 @@ $module_patches{QUADEM} = [
 	{op => "unlink_glob", pattern => "quadEMApp/op/ui/*.ui"},
 ];
 
+$module_patches{SOFTGLUEZYNQ} = [
+	# The socket_test* programs are POSIX/Linux dev tools (sys/socket.h,
+	# arpa/inet.h, pthread.h) declared as bare PROD, so they build for every
+	# arch including vxWorks. Restrict them to Linux targets, matching the
+	# module's LIBRARY_IOC_Linux.
+	{op => "substitute", search => '\QPROD += socket_test1\E', replace => "PROD_Linux += socket_test1", file => "softGlueApp/src/Makefile"},
+	{op => "substitute", search => '\QPROD += socket_test2\E', replace => "PROD_Linux += socket_test2", file => "softGlueApp/src/Makefile"},
+	{op => "substitute", search => '\QPROD += socket_test3\E', replace => "PROD_Linux += socket_test3", file => "softGlueApp/src/Makefile"},
+	{op => "substitute", search => '\QPROD += socket_test4\E', replace => "PROD_Linux += socket_test4", file => "softGlueApp/src/Makefile"},
+	{op => "substitute", search => '\QPROD += socket_test5\E', replace => "PROD_Linux += socket_test5", file => "softGlueApp/src/Makefile"},
+	{op => "substitute", search => '\QPROD += socket_test6\E', replace => "PROD_Linux += socket_test6", file => "softGlueApp/src/Makefile"},
+	{op => "substitute", search => '\QPROD += socket_test7\E', replace => "PROD_Linux += socket_test7", file => "softGlueApp/src/Makefile"},
+];
+
 $module_patches{STREAM} = [
 	{op => "unlink",     file => "GNUmakefile"},
 	{op => "substitute", search => "PCRE=", replace => "#PCRE=", file => "configure/RELEASE"},

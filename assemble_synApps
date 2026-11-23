@@ -611,6 +611,17 @@ $module_patches{ETHERIP} = [
 	{op => "substitute", search => "EPICS_UPDATE_LEVEL",                     replace => "EPICS_PATCH_LEVEL",                   file => "ether_ipApp/src/ether_ip.rc"},
 ];
 
+$module_patches{GALIL} = [
+	# GalilController.cpp uses C++11 (std::unordered_map) which the old vxWorks
+	# gcc cannot compile. Galil builds a dummy stub when HAVE_C++11=NO. Upstream
+	# only sets HAVE_C++11=NO for the exact vxWorks-ppc32 target; extend it to
+	# every vxWorks arch by keying on OS_CLASS.
+	{op => "substitute",
+	 search  => '\QHAVE_C++11=YES\E',
+	 replace => "HAVE_C++11=YES\n\nifeq (\$(OS_CLASS),vxWorks)\n  HAVE_C++11=NO\nendif",
+	 file    => "configure/CONFIG_SITE"},
+];
+
 $module_patches{IPAC} = [
 	{op => "add_line",   line => '-include $(TOP)/../RELEASE.local',                    file => "./configure/RELEASE"},
 	{op => "add_line",   line => '-include $(TOP)/../RELEASE.$(EPICS_HOST_ARCH).local', file => "./configure/RELEASE"},

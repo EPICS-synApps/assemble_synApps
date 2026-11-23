@@ -642,6 +642,19 @@ $module_patches{IPAC} = [
 	{op => "substitute", search => '#registrar\(xy96', replace => "registrar(xy96", file => "drvIpac/drvIpac.dbd"},
 ];
 
+$module_patches{KETEK} = [
+	# ketek.cpp includes <inttypes.h>, which the vxWorks 6.9.4 target headers do
+	# not provide on the default include path. Exclude from vxWorks builds.
+	{op => "substitute",
+	 search  => '\QLIBRARY_IOC += ketek\E',
+	 replace => "ifneq (\$(OS_CLASS),vxWorks)\nLIBRARY_IOC += ketek",
+	 file    => "ketekApp/src/Makefile"},
+	{op => "substitute",
+	 search  => '\QPROD_IOC  += $(PROD_NAME)\E',
+	 replace => "PROD_IOC  += \$(PROD_NAME)\nendif",
+	 file    => "ketekApp/src/Makefile"},
+];
+
 $module_patches{LABJACK} = [
 	{op => "substitute", search => "PROD_IOC_WIN32 = LabJackApp",
 	                     replace => "ifeq (windows-x64, \$(findstring windows-x64, \$(T_A)))\nPROD_IOC_WIN32 = LabJackApp\nendif",

@@ -689,6 +689,22 @@ $module_patches{MQTT} = [
 	{op => "substitute", search => "MODULES =", replace => "SUPPORT=", file=> "configure/RELEASE"},
 ];
 
+$module_patches{OPCUA} = [
+	{op => "add_line", line => "EPICS_BASE=", file => "./configure/RELEASE.local"},
+	{op => "add_line", line => "SUPPORT=",    file => "./configure/RELEASE.local"},
+	# The opcua library is C++11 and depends on a host-only OPC UA SDK
+	# (open62541/UASDK built for EPICS_HOST_ARCH only), so exclude it from
+	# vxWorks. The exampleTop IOC links opcua, so exclude it there as well.
+	{op => "substitute",
+	 search  => '\QLIBRARY_IOC += opcua\E',
+	 replace => "ifneq (\$(OS_CLASS),vxWorks)\nLIBRARY_IOC += opcua\nendif",
+	 file    => "devOpcuaSup/Makefile"},
+	{op => "substitute",
+	 search  => '\QPROD_IOC = opcuaIoc\E',
+	 replace => "ifneq (\$(OS_CLASS),vxWorks)\nPROD_IOC = opcuaIoc\nendif",
+	 file    => "exampleTop/opcuaIocApp/Makefile"},
+];
+
 $module_patches{PYDEVSUP} = [
 	{op => "add_line", line => "EPICS_BASE=", file => "./configure/RELEASE.local"},
 	{op => "add_line", line => "SUPPORT=", file => "./configure/RELEASE.local"},
@@ -1051,11 +1067,6 @@ if (exists($modules{OPCUA}) && (!$UPDATE || $updated{OPCUA}))
 {
 	my $OPCUA_DIR = module_dir("OPCUA");
 	chdir $OPCUA_DIR or die "ERROR: Cannot enter directory $OPCUA_DIR: $!\n";
-	
-	# exampleTop is an embedded TOP that pulls EPICS_BASE and SUPPORT
-	# from the module's configure/RELEASE.local (populated by 'make release')
-	add_line("EPICS_BASE=", "./configure/RELEASE.local");
-	add_line("SUPPORT=", "./configure/RELEASE.local");
 	
 	# Determine which SDK to use: UASDK (commercial, pre-installed) or open62541 (open-source, built from source)
 	my $use_uasdk = 0;

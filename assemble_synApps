@@ -381,7 +381,9 @@ sub copy_recur {
 
 #
 # Replaces all occurrences of a pattern in a file.
-# Note: $search is used as a regex pattern. Use \Q...\E to match literal strings.
+# Note: $search is interpolated into s/// as a regex, so regex metacharacters
+# (+ . ( ) $ etc.) must be backslash-escaped. \Q...\E does NOT work here because
+# it is not honored inside an interpolated variable; escape each character.
 sub do_substitution {
 	my ($search, $replace, $file) = @_;
 	
@@ -584,11 +586,11 @@ $module_patches{AUTOPARAM} = [
 	# libstdc++ lacks. Exclude the library and the test IOC that links it from
 	# vxWorks builds.
 	{op => "substitute",
-	 search  => '\QLIBRARY_IOC += autoparamDriver\E',
+	 search  => 'LIBRARY_IOC \+= autoparamDriver',
 	 replace => "ifneq (\$(OS_CLASS),vxWorks)\nLIBRARY_IOC += autoparamDriver\nendif",
 	 file    => "autoparamDriverSup/src/Makefile"},
 	{op => "substitute",
-	 search  => '\QPROD_IOC = autoparamTest\E',
+	 search  => 'PROD_IOC = autoparamTest',
 	 replace => "ifneq (\$(OS_CLASS),vxWorks)\nPROD_IOC = autoparamTest\nendif",
 	 file    => "autoparamTestApp/src/Makefile"},
 ];
@@ -616,8 +618,8 @@ $module_patches{ECMC} = [
 
 $module_patches{ETHERIP} = [
 	{op => "add_line",   line => "EPICS_BASE=", file => "./configure/RELEASE"},
-	{op => "substitute", search => '\QDIRS += testether_ipApp\E',           replace => '#DIRS \+= testether_ipApp',           file => "Makefile"},
-	{op => "substitute", search => '\QUSR_CFLAGS += -Wno-unused-value\E',   replace => 'USR_CFLAGS_Darwin \+= -Wno-unused-value', file => "ether_ipApp/src/Makefile"},
+	{op => "substitute", search => 'DIRS \+= testether_ipApp',           replace => '#DIRS += testether_ipApp',           file => "Makefile"},
+	{op => "substitute", search => 'USR_CFLAGS \+= -Wno-unused-value',   replace => 'USR_CFLAGS_Darwin += -Wno-unused-value', file => "ether_ipApp/src/Makefile"},
 	{op => "substitute", search => "SYS_DLL_LIBS",                          replace => "USR_SYS_LIBS_WIN32",                  file => "ether_ipApp/src/Makefile"},
 	{op => "substitute", search => "EPICS_UPDATE_LEVEL",                     replace => "EPICS_PATCH_LEVEL",                   file => "ether_ipApp/src/ether_ip.rc"},
 ];
@@ -628,7 +630,7 @@ $module_patches{GALIL} = [
 	# only sets HAVE_C++11=NO for the exact vxWorks-ppc32 target; extend it to
 	# every vxWorks arch by keying on OS_CLASS.
 	{op => "substitute",
-	 search  => '\QHAVE_C++11=YES\E',
+	 search  => 'HAVE_C\+\+11=YES',
 	 replace => "HAVE_C++11=YES\n\nifeq (\$(OS_CLASS),vxWorks)\n  HAVE_C++11=NO\nendif",
 	 file    => "configure/CONFIG_SITE"},
 ];
@@ -646,11 +648,11 @@ $module_patches{KETEK} = [
 	# ketek.cpp includes <inttypes.h>, which the vxWorks 6.9.4 target headers do
 	# not provide on the default include path. Exclude from vxWorks builds.
 	{op => "substitute",
-	 search  => '\QLIBRARY_IOC += ketek\E',
+	 search  => 'LIBRARY_IOC \+= ketek',
 	 replace => "ifneq (\$(OS_CLASS),vxWorks)\nLIBRARY_IOC += ketek",
 	 file    => "ketekApp/src/Makefile"},
 	{op => "substitute",
-	 search  => '\QPROD_IOC  += $(PROD_NAME)\E',
+	 search  => 'PROD_IOC  \+= \$\(PROD_NAME\)',
 	 replace => "PROD_IOC  += \$(PROD_NAME)\nendif",
 	 file    => "ketekApp/src/Makefile"},
 ];
@@ -659,7 +661,7 @@ $module_patches{LABJACK} = [
 	{op => "substitute", search => "PROD_IOC_WIN32 = LabJackApp",
 	                     replace => "ifeq (windows-x64, \$(findstring windows-x64, \$(T_A)))\nPROD_IOC_WIN32 = LabJackApp\nendif",
 	                     file => "LabJackApp/src/Makefile"},
-	{op => "substitute", search => '\QLIBRARY_IOC_WIN32 += LabJack\E',
+	{op => "substitute", search => 'LIBRARY_IOC_WIN32 \+= LabJack',
 	                     replace => "ifeq (windows-x64, \$(findstring windows-x64, \$(T_A)))\nLIBRARY_IOC_WIN32 \+= LabJack\nendif",
 	                     file => "LabJackApp/src/Makefile"},
 ];
@@ -696,11 +698,11 @@ $module_patches{OPCUA} = [
 	# (open62541/UASDK built for EPICS_HOST_ARCH only), so exclude it from
 	# vxWorks. The exampleTop IOC links opcua, so exclude it there as well.
 	{op => "substitute",
-	 search  => '\QLIBRARY_IOC += opcua\E',
+	 search  => 'LIBRARY_IOC \+= opcua',
 	 replace => "ifneq (\$(OS_CLASS),vxWorks)\nLIBRARY_IOC += opcua\nendif",
 	 file    => "devOpcuaSup/Makefile"},
 	{op => "substitute",
-	 search  => '\QPROD_IOC = opcuaIoc\E',
+	 search  => 'PROD_IOC = opcuaIoc',
 	 replace => "ifneq (\$(OS_CLASS),vxWorks)\nPROD_IOC = opcuaIoc\nendif",
 	 file    => "exampleTop/opcuaIocApp/Makefile"},
 ];
@@ -719,6 +721,36 @@ $module_patches{PYDEVSUP} = [
 
 $module_patches{QUADEM} = [
 	{op => "unlink_glob", pattern => "quadEMApp/op/ui/*.ui"},
+	# The sydor T4U driver (drvT4U_EM.cpp/.h) uses C++11 (cstdint,
+	# forward_list, nullptr, auto iterators) which the vxWorks toolchain
+	# lacks. Exclude the compiled sydorQuadEM library and the test IOC's
+	# linkage/registration of it on vxWorks. The .dbd files are static
+	# source copied to the shared dbd/ tree, so they stay unguarded and
+	# T4U support is preserved for host and linux-arm builds.
+	{op => "substitute",
+	 search  => 'LIBRARY_IOC \+= sydorQuadEM',
+	 replace => "ifneq (\$(OS_CLASS),vxWorks)\nLIBRARY_IOC += sydorQuadEM\nendif",
+	 file    => "quadEMApp/sydorSrc/Makefile"},
+	{op => "substitute",
+	 search  => 'LIB_SRCS \+= drvT4U_EM.cpp',
+	 replace => "ifneq (\$(OS_CLASS),vxWorks)\nLIB_SRCS += drvT4U_EM.cpp",
+	 file    => "quadEMApp/sydorSrc/Makefile"},
+	{op => "substitute",
+	 search  => 'LIB_SRCS \+= drvT4UDirect_EM.cpp',
+	 replace => "LIB_SRCS += drvT4UDirect_EM.cpp\nendif",
+	 file    => "quadEMApp/sydorSrc/Makefile"},
+	{op => "substitute",
+	 search  => 'PROD_LIBS \+= sydorQuadEM',
+	 replace => "ifneq (\$(OS_CLASS),vxWorks)\nPROD_LIBS += sydorQuadEM\nendif",
+	 file    => "quadEMApp/src/Makefile"},
+	{op => "substitute",
+	 search  => '\$\(PROD_NAME\)_DBD \+= drvT4U_EM.dbd',
+	 replace => "ifneq (\$(OS_CLASS),vxWorks)\n\$(PROD_NAME)_DBD += drvT4U_EM.dbd",
+	 file    => "quadEMApp/src/Makefile"},
+	{op => "substitute",
+	 search  => '\$\(PROD_NAME\)_DBD \+= drvT4UDirect_EM.dbd',
+	 replace => "\$(PROD_NAME)_DBD += drvT4UDirect_EM.dbd\nendif",
+	 file    => "quadEMApp/src/Makefile"},
 ];
 
 $module_patches{SOFTGLUEZYNQ} = [
@@ -726,13 +758,13 @@ $module_patches{SOFTGLUEZYNQ} = [
 	# arpa/inet.h, pthread.h) declared as bare PROD, so they build for every
 	# arch including vxWorks. Restrict them to Linux targets, matching the
 	# module's LIBRARY_IOC_Linux.
-	{op => "substitute", search => '\QPROD += socket_test1\E', replace => "PROD_Linux += socket_test1", file => "softGlueApp/src/Makefile"},
-	{op => "substitute", search => '\QPROD += socket_test2\E', replace => "PROD_Linux += socket_test2", file => "softGlueApp/src/Makefile"},
-	{op => "substitute", search => '\QPROD += socket_test3\E', replace => "PROD_Linux += socket_test3", file => "softGlueApp/src/Makefile"},
-	{op => "substitute", search => '\QPROD += socket_test4\E', replace => "PROD_Linux += socket_test4", file => "softGlueApp/src/Makefile"},
-	{op => "substitute", search => '\QPROD += socket_test5\E', replace => "PROD_Linux += socket_test5", file => "softGlueApp/src/Makefile"},
-	{op => "substitute", search => '\QPROD += socket_test6\E', replace => "PROD_Linux += socket_test6", file => "softGlueApp/src/Makefile"},
-	{op => "substitute", search => '\QPROD += socket_test7\E', replace => "PROD_Linux += socket_test7", file => "softGlueApp/src/Makefile"},
+	{op => "substitute", search => 'PROD \+= socket_test1', replace => "PROD_Linux += socket_test1", file => "softGlueApp/src/Makefile"},
+	{op => "substitute", search => 'PROD \+= socket_test2', replace => "PROD_Linux += socket_test2", file => "softGlueApp/src/Makefile"},
+	{op => "substitute", search => 'PROD \+= socket_test3', replace => "PROD_Linux += socket_test3", file => "softGlueApp/src/Makefile"},
+	{op => "substitute", search => 'PROD \+= socket_test4', replace => "PROD_Linux += socket_test4", file => "softGlueApp/src/Makefile"},
+	{op => "substitute", search => 'PROD \+= socket_test5', replace => "PROD_Linux += socket_test5", file => "softGlueApp/src/Makefile"},
+	{op => "substitute", search => 'PROD \+= socket_test6', replace => "PROD_Linux += socket_test6", file => "softGlueApp/src/Makefile"},
+	{op => "substitute", search => 'PROD \+= socket_test7', replace => "PROD_Linux += socket_test7", file => "softGlueApp/src/Makefile"},
 ];
 
 $module_patches{STREAM} = [
@@ -749,8 +781,8 @@ $module_patches{TWINCAT} = [
 	{op => "add_line", line => "EPICS_BASE=", file => "./configure/RELEASE.local"},
 	{op => "add_line", line => "SUPPORT=", file => "./configure/RELEASE.local"},
 	{op => "add_line", line => "ASYN=", file => "./configure/RELEASE.local"},
-	{op => "substitute", search => '\Q${PWD}/tools/downloadADS.sh\E', replace => '$(CURDIR)/tools/downloadADS.sh', file => "Makefile"},
-	{op => "substitute", search => '\Q./tools/checkws.sh\E',          replace => '$(CURDIR)/tools/checkws.sh',        file => "Makefile"},
+	{op => "substitute", search => '\$\{PWD\}/tools/downloadADS\.sh', replace => '$(CURDIR)/tools/downloadADS.sh', file => "Makefile"},
+	{op => "substitute", search => '\./tools/checkws\.sh',          replace => '$(CURDIR)/tools/checkws.sh',        file => "Makefile"},
 ];
 
 $module_patches{URROBOT} = [
